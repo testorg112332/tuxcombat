@@ -1,3 +1,4 @@
+
 extends CharacterBody2D
 class_name Fighter
 
@@ -40,6 +41,7 @@ const WHITE := Color("#fffaf0")
 const SHADOW := Color("#080a10")
 const GOLD := Color("#ffad28")
 
+
 func setup(display_name: String, id: int, cpu: bool, style_id: String = "tux") -> void:
 	fighter_name = display_name
 	player_id = id
@@ -47,6 +49,7 @@ func setup(display_name: String, id: int, cpu: bool, style_id: String = "tux") -
 	character_id = style_id
 	health = max_health
 	queue_redraw()
+
 
 func reset_fighter(start_position: Vector2) -> void:
 	position = start_position
@@ -61,6 +64,7 @@ func reset_fighter(start_position: Vector2) -> void:
 	crouching = false
 	queue_redraw()
 
+
 func _physics_process(delta: float) -> void:
 	stunned = maxf(0.0, stunned - delta)
 	attack_cooldown = maxf(0.0, attack_cooldown - delta)
@@ -70,6 +74,7 @@ func _physics_process(delta: float) -> void:
 		queue_redraw()
 
 	var grounded := position.y >= GROUND_Y
+
 	if grounded:
 		position.y = GROUND_Y
 		velocity.y = 0.0
@@ -91,6 +96,7 @@ func _physics_process(delta: float) -> void:
 
 	if attack_flash <= 0.0:
 		queue_redraw()
+
 
 func _process_player(grounded: bool, delta: float) -> void:
 	var left := false
@@ -139,6 +145,7 @@ func _process_player(grounded: bool, delta: float) -> void:
 		_try_attack(PUNCH_DAMAGE, PUNCH_REACH, 0.24)
 	elif kick:
 		_try_attack(KICK_DAMAGE, KICK_REACH, 0.32)
+
 
 func _process_cpu(delta: float) -> void:
 	var target: Fighter
@@ -196,6 +203,7 @@ func _process_cpu(delta: float) -> void:
 	elif abs_distance > 250.0 and ai_choice == 2 and position.y >= GROUND_Y:
 		velocity.y = JUMP_SPEED
 
+
 func _try_attack(damage: int, reach: float, recovery: float) -> void:
 	if attack_cooldown > 0.0:
 		return
@@ -203,6 +211,7 @@ func _try_attack(damage: int, reach: float, recovery: float) -> void:
 	attack_cooldown = recovery
 	attack_flash = 0.12
 	strike.emit(self, damage, reach)
+
 
 func take_damage(amount: int, knockback: float) -> void:
 	if health <= 0 or amount <= 0:
@@ -212,6 +221,7 @@ func take_damage(amount: int, knockback: float) -> void:
 	stunned = maxf(stunned, 0.16)
 	velocity.x += knockback
 	queue_redraw()
+
 
 # -------------------------------------------------------------------
 # Procedural mascot artwork
@@ -229,6 +239,7 @@ func _draw() -> void:
 		_:
 			_draw_tux()
 
+
 func _ellipse(center: Vector2, rx: float, ry: float, color: Color, segments: int = 32) -> void:
 	var safe_segments := maxi(3, segments)
 	var points := PackedVector2Array()
@@ -239,8 +250,10 @@ func _ellipse(center: Vector2, rx: float, ry: float, color: Color, segments: int
 
 	draw_colored_polygon(points, color)
 
+
 func _poly(points: Array[Vector2], color: Color) -> void:
 	draw_colored_polygon(PackedVector2Array(points), color)
+
 
 func _stroke(points: Array[Vector2], color: Color, width: float = 5.0) -> void:
 	for i in range(points.size() - 1):
@@ -249,6 +262,7 @@ func _stroke(points: Array[Vector2], color: Color, width: float = 5.0) -> void:
 
 	if not points.is_empty():
 		draw_circle(points[points.size() - 1], width * 0.5, color)
+
 
 func _eye(center: Vector2, radius: float = 8.0) -> void:
 	_ellipse(center + Vector2(1, 1), radius + 2, radius + 2, OUTLINE)
@@ -266,6 +280,7 @@ func _eye(center: Vector2, radius: float = 8.0) -> void:
 		WHITE
 	)
 
+
 func _draw_attack_effect(color: Color) -> void:
 	if attack_flash <= 0.0:
 		return
@@ -282,6 +297,7 @@ func _draw_attack_effect(color: Color) -> void:
 	draw_circle(Vector2(114 * f, -36), 7, WHITE)
 	draw_circle(Vector2(114 * f, -36), 4, color)
 
+
 func _draw_feet(color: Color, width: float = 19.0) -> void:
 	var y := 79.0 if not crouching else 83.0
 
@@ -290,12 +306,12 @@ func _draw_feet(color: Color, width: float = 19.0) -> void:
 	_stroke([Vector2(-22, 55), Vector2(-29, y)], color, width)
 	_stroke([Vector2(22, 55), Vector2(29, y)], color, width)
 
+
 func _draw_tux() -> void:
 	var black := Color("#171c24")
 	var belly := Color("#fffaf0")
 	var orange := Color("#ff9f1c")
 
-	# Feet and flippers sit behind the body.
 	_draw_feet(orange, 20)
 
 	_stroke([Vector2(-34, -5), Vector2(-62, 12), Vector2(-68, 21)], OUTLINE, 23)
@@ -303,12 +319,10 @@ func _draw_tux() -> void:
 	_stroke([Vector2(-34, -5), Vector2(-62, 12), Vector2(-68, 21)], black, 17)
 	_stroke([Vector2(34, -5), Vector2(62, 12), Vector2(68, 21)], black, 17)
 
-	# One connected-looking penguin body with a large white chest.
 	_ellipse(Vector2(0, 17), 51, 64, OUTLINE)
 	_ellipse(Vector2(0, 15), 46, 59, black)
 	_ellipse(Vector2(0, 24), 32, 43, belly)
 
-	# Head and face.
 	_ellipse(Vector2(0, -66), 51, 49, OUTLINE)
 	_ellipse(Vector2(0, -66), 46, 44, black)
 	_ellipse(Vector2(0, -48), 34, 29, belly)
@@ -331,6 +345,7 @@ func _draw_tux() -> void:
 	_ellipse(Vector2(-15 * f, -83), 5, 6, Color("#11131a"))
 	_draw_attack_effect(orange)
 
+
 func _draw_gnu() -> void:
 	var fur := Color("#7c8795")
 	var light_fur := Color("#d8d2c4")
@@ -341,7 +356,6 @@ func _draw_gnu() -> void:
 
 	_draw_feet(hoof, 18)
 
-	# Shaggy shoulders, back and beard.
 	_ellipse(Vector2(0, 17), 54, 60, OUTLINE)
 	_ellipse(Vector2(0, 15), 49, 55, fur)
 	_ellipse(Vector2(-4, 23), 34, 40, light_fur)
@@ -352,13 +366,11 @@ func _draw_gnu() -> void:
 		Vector2(30, -17), Vector2(22, 24), Vector2(-21, 26)
 	], fur)
 
-	# Long wildebeest muzzle.
 	_ellipse(Vector2(24 * f, -59), 30, 23, OUTLINE)
 	_ellipse(Vector2(25 * f, -60), 27, 19, fur)
 	_ellipse(Vector2(43 * f, -52), 18, 13, muzzle)
 	_ellipse(Vector2(52 * f, -55), 3, 3, OUTLINE)
 
-	# Wide, curved horns with pale tips.
 	_stroke([
 		Vector2(-26, -88), Vector2(-39, -107),
 		Vector2(-49, -124), Vector2(-46, -137)
@@ -379,7 +391,6 @@ func _draw_gnu() -> void:
 		Vector2(45, -121), Vector2(43, -135)
 	], horn, 9)
 
-	# Forelock and beard.
 	_poly([
 		Vector2(-22, -94), Vector2(-7, -104),
 		Vector2(4, -91), Vector2(18, -101),
@@ -407,6 +418,7 @@ func _draw_gnu() -> void:
 
 	_draw_attack_effect(GOLD)
 
+
 func _draw_beastie() -> void:
 	var red := Color("#c92332")
 	var dark_red := Color("#7e1725")
@@ -416,7 +428,6 @@ func _draw_beastie() -> void:
 
 	_draw_feet(orange, 18)
 
-	# Tail curls upward behind the body and ends in a devilish spade.
 	_stroke([
 		Vector2(-34, 38), Vector2(-55, 27),
 		Vector2(-66, 8), Vector2(-62, -6),
@@ -439,13 +450,11 @@ func _draw_beastie() -> void:
 		Vector2(-49, -1), Vector2(-57, -7)
 	], red)
 
-	# Compact red imp body.
 	_ellipse(Vector2(0, 17), 53, 61, OUTLINE)
 	_ellipse(Vector2(0, 15), 48, 56, red)
 	_ellipse(Vector2(0, 23), 32, 40, dark_red)
 	_ellipse(Vector2(4, 22), 26, 33, red)
 
-	# Pointed ears.
 	_poly([
 		Vector2(-35, -76), Vector2(-64, -96),
 		Vector2(-55, -63), Vector2(-37, -53)
@@ -466,7 +475,6 @@ func _draw_beastie() -> void:
 		Vector2(51, -64), Vector2(37, -58)
 	], red)
 
-	# Curved devil horns.
 	_stroke([
 		Vector2(-22, -88), Vector2(-31, -106),
 		Vector2(-29, -123), Vector2(-40, -133)
@@ -487,7 +495,6 @@ func _draw_beastie() -> void:
 		Vector2(28, -123), Vector2(39, -133)
 	], orange, 10)
 
-	# Face and cream muzzle.
 	_ellipse(Vector2(0, -67), 43, 37, OUTLINE)
 	_ellipse(Vector2(0, -68), 39, 33, red)
 	_ellipse(Vector2(23 * f, -52), 22, 16, OUTLINE)
@@ -496,7 +503,6 @@ func _draw_beastie() -> void:
 	_eye(Vector2(16 * f, -78), 8)
 	_ellipse(Vector2(35 * f, -53), 3, 2, OUTLINE)
 
-	# Little grin.
 	_stroke([
 		Vector2(12 * f, -43), Vector2(22 * f, -40),
 		Vector2(32 * f, -44)
@@ -509,12 +515,14 @@ func _draw_beastie() -> void:
 
 	_draw_attack_effect(orange)
 
+
 func _draw_puffy() -> void:
-	var blue := Color("#2585df")
-	var deep_blue := Color("#1453a0")
-	var light_blue := Color("#7dc8ff")
-	var belly := Color("#f5e9ce")
-	var fin := Color("#46a8f5")
+	# Puffy: yellow OpenBSD pufferfish!
+	var yellow := Color("#ffd43b")
+	var deep_yellow := Color("#c98b00")
+	var light_yellow := Color("#fff1a8")
+	var belly := Color("#fff3cf")
+	var fin := Color("#ffbd2e")
 	var f := facing
 
 	# Tail fin behind the fish.
@@ -551,9 +559,9 @@ func _draw_puffy() -> void:
 		Vector2(17, 64), Vector2(10, 53)
 	], fin)
 
-	# A round, broad fish silhouette.
+	# A round, broad yellow fish silhouette.
 	_ellipse(Vector2(0, 0), 57, 69, OUTLINE)
-	_ellipse(Vector2(0, 0), 52, 64, blue)
+	_ellipse(Vector2(0, 0), 52, 64, yellow)
 	_ellipse(Vector2(0, 22), 37, 39, belly)
 
 	# Side fins.
@@ -583,14 +591,14 @@ func _draw_puffy() -> void:
 		var inner := Vector2(cos(angle) * 52, sin(angle) * 62)
 		var outer := Vector2(cos(angle) * 66, sin(angle) * 78)
 		draw_line(inner, outer, OUTLINE, 9, true)
-		draw_line(inner, outer, light_blue, 5, true)
+		draw_line(inner, outer, light_yellow, 5, true)
 
 	for i in range(7):
 		var angle := -0.15 + float(i) * PI / 7.0
 		var inner := Vector2(cos(angle) * 51, sin(angle) * 61)
 		var outer := Vector2(cos(angle) * 64, sin(angle) * 76)
 		draw_line(inner, outer, OUTLINE, 8, true)
-		draw_line(inner, outer, light_blue, 4, true)
+		draw_line(inner, outer, light_yellow, 4, true)
 
 	# Eyes, tiny fish mouth and cheek marks.
 	_eye(Vector2(19 * f, -24), 8)
@@ -598,11 +606,11 @@ func _draw_puffy() -> void:
 	_ellipse(Vector2(31 * f, -5), 6, 4, OUTLINE)
 	_ellipse(Vector2(32 * f, -6), 3, 2, Color("#ffb2a5"))
 
-	# A few scale-like spots make the silhouette feel less flat.
-	_ellipse(Vector2(-25, 4), 4, 4, light_blue)
-	_ellipse(Vector2(-31, 19), 3, 3, light_blue)
+	# Yellow scale-like spots.
+	_ellipse(Vector2(-25, 4), 4, 4, light_yellow)
+	_ellipse(Vector2(-31, 19), 3, 3, light_yellow)
 	_ellipse(Vector2(13, 38), 4, 3, Color("#dfd0b3"))
 	_ellipse(Vector2(-9, 43), 3, 3, Color("#dfd0b3"))
 
-	# The attack swipe reads as a punch or fin strike.
-	_draw_attack_effect(Color("#9ce8ff"))
+	# Yellow-white attack swipe.
+	_draw_attack_effect(Color("#fff1a8"))
