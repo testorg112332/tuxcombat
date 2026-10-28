@@ -1,3 +1,4 @@
+
 extends Node2D
 
 const FighterScene = preload("res://scripts/fighter.gd")
@@ -38,6 +39,7 @@ const FLOOR_COLOR := Color("#121a2b")
 const GRID_COLOR := Color("#1d2942")
 const ACCENT_BLUE := Color("#7dd3fc")
 const ACCENT_GREEN := Color("#a7f3d0")
+const PUFFY_YELLOW := Color("#ffd43b")
 
 var p1: Fighter
 var p2: Fighter
@@ -135,6 +137,14 @@ func _update_selection_visuals() -> void:
 	for i in range(selection_buttons.size()):
 		var button := selection_buttons[i]
 		var character: Dictionary = CHARACTERS[i]
+
+		# Give Puffy's button text a yellow accent.
+		var character_color := (
+			PUFFY_YELLOW
+			if character["id"] == "puffy"
+			else Color.WHITE
+		)
+		button.add_theme_color_override("font_color", character_color)
 
 		if i == selected_index:
 			button.modulate = Color.WHITE
@@ -332,6 +342,15 @@ func _process(delta: float) -> void:
 
 	p1_bar.value = p1.health
 	p2_bar.value = p2.health
+
+	p1_health_label.text = "%s  •  %d HP" % [
+		p1.fighter_name,
+		p1.health
+	]
+	p2_health_label.text = "%s  •  %d HP" % [
+		p2.fighter_name,
+		p2.health
+	]
 
 	round_label.text = "Round %d   •   %d - %d" % [
 		round_number,
