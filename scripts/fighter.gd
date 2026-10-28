@@ -517,12 +517,15 @@ func _draw_beastie() -> void:
 
 
 func _draw_puffy() -> void:
-	# Puffy: yellow OpenBSD pufferfish!
-	var yellow := Color("#ffd43b")
-	var deep_yellow := Color("#c98b00")
-	var light_yellow := Color("#fff1a8")
-	var belly := Color("#fff3cf")
-	var fin := Color("#ffbd2e")
+	# Puffy is the YELLOW OpenBSD pufferfish.
+	# Keep all of Puffy's visible body colors in the yellow palette.
+	const PUFFY_YELLOW := Color("#ffdf32")
+	const PUFFY_DARK_YELLOW := Color("#d99a00")
+	const PUFFY_LIGHT_YELLOW := Color("#fff5a6")
+	const PUFFY_BELLY := Color("#fff0c2")
+	const PUFFY_FIN := Color("#ffb91f")
+	const PUFFY_CHEEK := Color("#ff9f9a")
+
 	var f := facing
 
 	# Tail fin behind the fish.
@@ -536,9 +539,9 @@ func _draw_puffy() -> void:
 		Vector2(-39, 10), Vector2(-63, 0),
 		Vector2(-66, 13), Vector2(-61, 25),
 		Vector2(-40, 22)
-	], fin)
+	], PUFFY_FIN)
 
-	# Feet are small fish-like fins rather than penguin feet.
+	# Small fish-like bottom fins.
 	_poly([
 		Vector2(-28, 50), Vector2(-43, 75),
 		Vector2(-15, 68), Vector2(-8, 53)
@@ -547,7 +550,7 @@ func _draw_puffy() -> void:
 	_poly([
 		Vector2(-26, 52), Vector2(-37, 69),
 		Vector2(-17, 64), Vector2(-10, 53)
-	], fin)
+	], PUFFY_FIN)
 
 	_poly([
 		Vector2(28, 50), Vector2(43, 75),
@@ -557,12 +560,13 @@ func _draw_puffy() -> void:
 	_poly([
 		Vector2(26, 52), Vector2(37, 69),
 		Vector2(17, 64), Vector2(10, 53)
-	], fin)
+	], PUFFY_FIN)
 
-	# A round, broad yellow fish silhouette.
+	# Main round yellow body.
 	_ellipse(Vector2(0, 0), 57, 69, OUTLINE)
-	_ellipse(Vector2(0, 0), 52, 64, yellow)
-	_ellipse(Vector2(0, 22), 37, 39, belly)
+	_ellipse(Vector2(0, 0), 52, 64, PUFFY_YELLOW)
+	_ellipse(Vector2(-8, -12), 35, 35, PUFFY_LIGHT_YELLOW)
+	_ellipse(Vector2(0, 22), 37, 39, PUFFY_BELLY)
 
 	# Side fins.
 	_poly([
@@ -573,7 +577,7 @@ func _draw_puffy() -> void:
 	_poly([
 		Vector2(-45, -14), Vector2(-62, -26),
 		Vector2(-59, -5), Vector2(-45, 2)
-	], fin)
+	], PUFFY_FIN)
 
 	_poly([
 		Vector2(45, -15), Vector2(67, -31),
@@ -583,34 +587,36 @@ func _draw_puffy() -> void:
 	_poly([
 		Vector2(45, -14), Vector2(62, -26),
 		Vector2(59, -5), Vector2(45, 2)
-	], fin)
+	], PUFFY_FIN)
 
-	# Distinctive pufferfish spines around the outline.
+	# Spines around the silhouette: yellow, with dark outlines.
 	for i in range(9):
 		var angle := PI + float(i) * PI / 8.0
 		var inner := Vector2(cos(angle) * 52, sin(angle) * 62)
 		var outer := Vector2(cos(angle) * 66, sin(angle) * 78)
+
 		draw_line(inner, outer, OUTLINE, 9, true)
-		draw_line(inner, outer, light_yellow, 5, true)
+		draw_line(inner, outer, PUFFY_LIGHT_YELLOW, 5, true)
 
 	for i in range(7):
 		var angle := -0.15 + float(i) * PI / 7.0
 		var inner := Vector2(cos(angle) * 51, sin(angle) * 61)
 		var outer := Vector2(cos(angle) * 64, sin(angle) * 76)
-		draw_line(inner, outer, OUTLINE, 8, true)
-		draw_line(inner, outer, light_yellow, 4, true)
 
-	# Eyes, tiny fish mouth and cheek marks.
+		draw_line(inner, outer, OUTLINE, 8, true)
+		draw_line(inner, outer, PUFFY_LIGHT_YELLOW, 4, true)
+
+	# Eyes and tiny fish mouth.
 	_eye(Vector2(19 * f, -24), 8)
 	_ellipse(Vector2(-11 * f, -25), 6, 7, OUTLINE)
 	_ellipse(Vector2(31 * f, -5), 6, 4, OUTLINE)
-	_ellipse(Vector2(32 * f, -6), 3, 2, Color("#ffb2a5"))
+	_ellipse(Vector2(32 * f, -6), 3, 2, PUFFY_CHEEK)
 
-	# Yellow scale-like spots.
-	_ellipse(Vector2(-25, 4), 4, 4, light_yellow)
-	_ellipse(Vector2(-31, 19), 3, 3, light_yellow)
-	_ellipse(Vector2(13, 38), 4, 3, Color("#dfd0b3"))
-	_ellipse(Vector2(-9, 43), 3, 3, Color("#dfd0b3"))
+	# Yellow scales and spots.
+	_ellipse(Vector2(-25, 4), 4, 4, PUFFY_LIGHT_YELLOW)
+	_ellipse(Vector2(-31, 19), 3, 3, PUFFY_DARK_YELLOW)
+	_ellipse(Vector2(13, 38), 4, 3, PUFFY_DARK_YELLOW)
+	_ellipse(Vector2(-9, 43), 3, 3, PUFFY_DARK_YELLOW)
 
 	# Yellow-white attack swipe.
-	_draw_attack_effect(Color("#fff1a8"))
+	_draw_attack_effect(PUFFY_LIGHT_YELLOW)
