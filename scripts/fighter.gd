@@ -428,15 +428,43 @@ func _draw_attack_effect(color: Color) -> void:
 	var punch_color := color.lightened(0.16)
 	var kick_color := Color("#ffd43b") if character_id != "boss_ubuntu" else Color("#ff9b65")
 
+	# Puffy is a round fish-like mascot with fins, not humanoid arms and legs.
+	# Keep its attacks attached to its existing fin silhouettes.
+	if character_id == "puffy":
+		if last_attack_type == "punch":
+			var fin_root := Vector2(42.0 * f, -12.0)
+			var fin_pullback := windup * 5.0
+			var fin_tip := Vector2((58.0 - fin_pullback + extension * 24.0 - follow_through * 5.0) * f, -18.0 - extension * 8.0)
+			var fin_mid := Vector2((49.0 - fin_pullback + extension * 10.0) * f, -9.0 - extension * 3.0)
+			_stroke([fin_root, fin_mid, fin_tip], OUTLINE, 16.0)
+			_stroke([fin_root, fin_mid, fin_tip], PUFFY_FIN, 10.0)
+			if progress > 0.22 and progress < 0.82:
+				for i in range(3):
+					var trail_start := fin_tip - Vector2((10.0 + float(i) * 7.0) * f, -float(i) * 3.0)
+					_stroke([trail_start, trail_start - Vector2(8.0 * f, 0.0)], Color(1.0, 0.96, 0.65, 0.40 - float(i) * 0.10), 2.5)
+			_ellipse(fin_tip, 8.0, 6.0, OUTLINE)
+			_ellipse(fin_tip, 5.0, 3.5, PUFFY_LIGHT_YELLOW)
+		else:
+			var fin_root := Vector2(26.0 * f, 39.0)
+			var fin_pullback := windup * 7.0
+			var fin_tip := Vector2((43.0 - fin_pullback + extension * 34.0 - follow_through * 8.0) * f, 48.0 - extension * 16.0 + fin_pullback * 0.5)
+			var fin_mid := Vector2((34.0 - fin_pullback * 0.5 + extension * 14.0) * f, 43.0 - extension * 7.0)
+			_stroke([fin_root, fin_mid, fin_tip], OUTLINE, 17.0)
+			_stroke([fin_root, fin_mid, fin_tip], PUFFY_FIN, 11.0)
+			if progress > 0.20 and progress < 0.82:
+				draw_arc(fin_tip, 17.0, -0.9, 0.8, 16, Color(1.0, 0.82, 0.25, 0.48 * (1.0 - follow_through)), 3.0, true)
+			return
+		return
+
 	if last_attack_type == "punch":
-		# Wind the fist back, snap forward, then let the arm recoil naturally.
-		var shoulder := Vector2(25.0 * f, -15.0)
-		var pullback := windup * 9.0
-		var reach_bonus := extension * 23.0 - follow_through * 5.0
-		var elbow := Vector2((35.0 - pullback * 0.55 + extension * 7.0) * f, -21.0 - extension * 4.0)
-		var fist := Vector2((48.0 - pullback + reach_bonus) * f, -28.0 - extension * 7.0 + follow_through * 3.0)
+		# Shoulder sits inside the torso edge; the arm grows outward from the body.
+		var shoulder := Vector2(31.0 * f, -2.0)
+		var pullback := windup * 8.0
+		var reach_bonus := extension * 24.0 - follow_through * 5.0
+		var elbow := Vector2((39.0 - pullback * 0.55 + extension * 6.0) * f, -8.0 - extension * 4.0)
+		var fist := Vector2((51.0 - pullback + reach_bonus) * f, -10.0 - extension * 7.0 + follow_through * 3.0)
 		if progress > 0.22 and progress < 0.82:
-			var trail_alpha := 0.48 * (1.0 - follow_through)
+			var trail_alpha := 0.42 * (1.0 - follow_through)
 			for i in range(3):
 				var offset := 12.0 + float(i) * 8.0
 				var trail_start := fist - Vector2(offset * f, -float(i) * 3.0)
@@ -449,18 +477,18 @@ func _draw_attack_effect(color: Color) -> void:
 		_ellipse(fist, 7.5, 7.0, WHITE)
 		_ellipse(fist + Vector2(1.5 * f, -1.0), 3.0, 3.0, punch_color)
 		if progress > 0.30 and progress < 0.58:
-			var ring_alpha := 0.55 * (1.0 - absf(progress - 0.43) / 0.15)
+			var ring_alpha := 0.50 * (1.0 - absf(progress - 0.43) / 0.15)
 			draw_arc(fist, 17.0 + extension * 5.0, -1.2, 1.2, 18, Color(punch_color.r, punch_color.g, punch_color.b, ring_alpha), 3.0, true)
 	else:
-		# The kick chambers high, whips outward, and tucks back in on recovery.
-		var chamber := windup * 11.0
-		var hip := Vector2(16.0 * f, 31.0)
-		var knee := Vector2((29.0 - chamber * 0.35 + extension * 10.0) * f, 34.0 - chamber * 0.8 - extension * 7.0 + follow_through * 3.0)
-		var foot_x := 45.0 - chamber + extension * 39.0 - follow_through * 9.0
-		var foot_y := 39.0 - chamber * 0.9 - extension * 13.0 + follow_through * 7.0
+		# Start the kicking limb well inside the lower torso so it doesn't look detached.
+		var chamber := windup * 9.0
+		var hip := Vector2(13.0 * f, 38.0)
+		var knee := Vector2((27.0 - chamber * 0.35 + extension * 10.0) * f, 40.0 - chamber * 0.8 - extension * 7.0 + follow_through * 3.0)
+		var foot_x := 43.0 - chamber + extension * 39.0 - follow_through * 9.0
+		var foot_y := 44.0 - chamber * 0.9 - extension * 13.0 + follow_through * 7.0
 		var foot := Vector2(foot_x * f, foot_y)
 		if progress > 0.20 and progress < 0.82:
-			var arc_alpha := 0.58 * (1.0 - follow_through)
+			var arc_alpha := 0.52 * (1.0 - follow_through)
 			_stroke([
 				Vector2(foot.x - 29.0 * f, foot.y - 10.0),
 				Vector2(foot.x - 17.0 * f, foot.y - 23.0),
