@@ -124,7 +124,6 @@ func _create_selection_screen() -> void:
 		button.size = Vector2(250, 270)
 		button.add_theme_font_size_override("font_size", 20)
 		button.tooltip_text = "Choose %s" % CHARACTERS[i]["name"]
-
 		button.pressed.connect(_select_character.bind(i))
 
 		selection_layer.add_child(button)
@@ -138,7 +137,6 @@ func _update_selection_visuals() -> void:
 		var button := selection_buttons[i]
 		var character: Dictionary = CHARACTERS[i]
 
-		# Give Puffy's button text a yellow accent.
 		var character_color := (
 			PUFFY_YELLOW
 			if character["id"] == "puffy"
@@ -252,8 +250,7 @@ func _create_fighters(player_choice: int) -> void:
 
 	controls_label.text = (
 		"P1: A/D move • W jump • S crouch • J punch • K kick"
-		+ "   |   CPU: %s"
-		% cpu_data["name"]
+		+ "   |   CPU: %s" % cpu_data["name"]
 	)
 
 	_reset_round()
@@ -363,7 +360,6 @@ func _process(delta: float) -> void:
 
 		if reset_timer <= 0.0:
 			if p1_rounds >= 2 or p2_rounds >= 2:
-				# Start a fresh match after displaying the winner.
 				round_number = 1
 				p1_rounds = 0
 				p2_rounds = 0
@@ -381,7 +377,12 @@ func _process(delta: float) -> void:
 	queue_redraw()
 
 
-func _on_strike(attacker: Fighter, damage: int, reach: float) -> void:
+func _on_strike(
+	attacker: Fighter,
+	damage: int,
+	reach: float,
+	attack_type: String
+) -> void:
 	if round_locked:
 		return
 
@@ -392,6 +393,9 @@ func _on_strike(attacker: Fighter, damage: int, reach: float) -> void:
 		return
 
 	if damage <= 0 or reach <= 0.0:
+		return
+
+	if attack_type != "punch" and attack_type != "kick":
 		return
 
 	var target: Fighter = p2 if attacker == p1 else p1
@@ -412,7 +416,7 @@ func _on_strike(attacker: Fighter, damage: int, reach: float) -> void:
 	if vertical_distance >= HIT_VERTICAL_REACH:
 		return
 
-	# Prevent attacks from connecting behind the attacker.
+	# Do not allow attacks to connect behind the attacker.
 	var target_offset := target.position.x - attacker.position.x
 
 	if target_offset * attacker.facing < -8.0:
