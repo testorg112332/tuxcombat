@@ -56,6 +56,7 @@ func setup(display_name: String, id: int, cpu: bool, style_id: String = "tux") -
 	player_id = id
 	is_cpu = cpu
 	character_id = style_id
+	max_health = 135 if character_id.begins_with("boss_") else 100
 	health = max_health
 	queue_redraw()
 
@@ -223,6 +224,12 @@ func _try_attack(
 		return
 
 	var adjusted_reach := reach
+	var adjusted_damage := damage
+
+	# Distro bosses hit harder and have a little more reach.
+	if character_id.begins_with("boss_"):
+		adjusted_damage = roundi(float(damage) * 1.25)
+		adjusted_reach += 12.0
 
 	# Tux's attacks use tighter ranges than the other fighters.
 	if character_id == "tux":
@@ -235,7 +242,7 @@ func _try_attack(
 	attack_flash = 0.16
 	last_attack_type = attack_type
 
-	strike.emit(self, damage, adjusted_reach, attack_type)
+	strike.emit(self, adjusted_damage, adjusted_reach, attack_type)
 	queue_redraw()
 
 
@@ -277,6 +284,14 @@ func _draw() -> void:
 			_draw_beastie()
 		"puffy":
 			_draw_puffy()
+		"boss_arch":
+			_draw_arch_boss()
+		"boss_ubuntu":
+			_draw_ubuntu_boss()
+		"boss_fedora":
+			_draw_fedora_boss()
+		"boss_debian":
+			_draw_debian_boss()
 		_:
 			_draw_tux()
 
@@ -333,57 +348,45 @@ func _draw_attack_effect(color: Color) -> void:
 		return
 
 	var f := facing
+	var progress := 1.0 - clampf(attack_flash / 0.16, 0.0, 1.0)
+	var punch_color := color.lightened(0.22)
+	var kick_color := Color("#ffd43b") if character_id != "boss_ubuntu" else Color("#ff9b65")
 
-	if character_id == "tux":
-		if last_attack_type == "punch":
-			# Black bolt shooting forward from Tux's hands.
-			var bolt_points: Array[Vector2] = [
-				Vector2(39 * f, -13),
-				Vector2(52 * f, -24),
-				Vector2(61 * f, -15),
-				Vector2(76 * f, -34),
-				Vector2(75 * f, -21),
-				Vector2(96 * f, -29)
-			]
-
-			_stroke(bolt_points, OUTLINE, 12.0)
-			_stroke(bolt_points, Color("#252936"), 7.0)
+	if last_attack_type == "punch":
+		# Forward arm with a large glove/fist. The arm extends during the punch.
+		var fist := Vector2((62.0 + 26.0 * progress) * f, -34.0 - 9.0 * progress)
+		var elbow := Vector2((43.0 + 10.0 * progress) * f, -23.0 - 4.0 * progress)
+		_stroke([Vector2(27.0 * f, -12.0), elbow, fist], OUTLINE, 22.0)
+		_stroke([Vector2(27.0 * f, -12.0), elbow, fist], punch_color, 15.0)
+		_ellipse(fist, 14.0, 12.0, OUTLINE)
+		_ellipse(fist, 10.0, 9.0, WHITE)
+		_ellipse(fist + Vector2(2.0 * f, -1.0), 5.0, 5.0, punch_color)
+		# Short speed lines make the punch read as a forward strike.
+		for i in range(3):
+			var y := -42.0 + float(i) * 9.0
 			_stroke([
-				Vector2(43 * f, -13),
-				Vector2(59 * f, -19),
-				Vector2(78 * f, -25)
-			], Color("#080a10"), 3.0)
-
-		elif last_attack_type == "kick":
-			# Yellow lightning bolts around Tux's feet.
-			var kick_bolt: Array[Vector2] = [
-				Vector2(24 * f, 43),
-				Vector2(39 * f, 49),
-				Vector2(32 * f, 59),
-				Vector2(50 * f, 64),
-				Vector2(43 * f, 77)
-			]
-
-			_stroke(kick_bolt, OUTLINE, 10.0)
-			_stroke(kick_bolt, Color("#ffd43b"), 6.0)
-			_stroke([
-				Vector2(31 * f, 46),
-				Vector2(27 * f, 54),
-				Vector2(40 * f, 60)
-			], Color("#fff5a6"), 3.0)
-
-		return
-
-	# Existing attack visuals for GNU, Beastie and Puffy.
-	_stroke([
-		Vector2(37 * f, -12),
-		Vector2(65 * f, -25),
-		Vector2(92 * f, -21),
-		Vector2(111 * f, -35)
-	], color, 7.0)
-
-	draw_circle(Vector2(114 * f, -36), 7, WHITE)
-	draw_circle(Vector2(114 * f, -36), 4, color)
+				Vector2((fist.x - 30.0 * f), y),
+				Vector2((fist.x - (18.0 + float(i) * 2.0) * f), y - 2.0)
+			], punch_color, 2.5)
+	else:
+		# A separate low sweeping kick: hip -> knee -> extended foot.
+		var knee := Vector2((36.0 + 12.0 * progress) * f, 30.0 - 8.0 * progress)
+		var foot := Vector2((62.0 + 34.0 * progress) * f, 22.0 - 27.0 * progress)
+		_stroke([Vector2(17.0 * f, 32.0), knee, foot], OUTLINE, 24.0)
+		_stroke([Vector2(17.0 * f, 32.0), knee, foot], kick_color, 16.0)
+		_ellipse(foot, 17.0, 9.0, OUTLINE)
+		_ellipse(foot + Vector2(2.0 * f, -1.0), 12.0, 5.5, WHITE)
+		# Curved-looking swoosh streaks distinguish the kick from the punch.
+		_stroke([
+			Vector2((foot.x - 30.0 * f), foot.y - 20.0),
+			Vector2((foot.x - 16.0 * f), foot.y - 27.0),
+			Vector2((foot.x - 2.0 * f), foot.y - 23.0)
+		], kick_color, 4.0)
+		_stroke([
+			Vector2((foot.x - 25.0 * f), foot.y + 15.0),
+			Vector2((foot.x - 12.0 * f), foot.y + 20.0),
+			Vector2((foot.x + 1.0 * f), foot.y + 14.0)
+		], kick_color.darkened(0.12), 3.0)
 
 
 func _draw_feet(color: Color, width: float = 19.0) -> void:
@@ -702,3 +705,78 @@ func _draw_puffy() -> void:
 	_ellipse(Vector2(-9, 43), 3, 3, PUFFY_DARK_YELLOW)
 
 	_draw_attack_effect(PUFFY_LIGHT_YELLOW)
+
+
+# -------------------------------------------------------------------
+# Distro bosses — original fighter silhouettes with recognizable logo cues.
+# -------------------------------------------------------------------
+
+func _draw_arch_boss() -> void:
+	var blue := Color("#1793d1")
+	_draw_feet(Color("#dceefa"), 22)
+	_ellipse(Vector2(0, 15), 57, 63, OUTLINE)
+	_ellipse(Vector2(0, 12), 51, 57, Color("#0d4265"))
+	_ellipse(Vector2(0, -67), 48, 47, OUTLINE)
+	_ellipse(Vector2(0, -68), 43, 42, blue)
+	# Arch's angular A mark, integrated into the helmet/faceplate.
+	_poly([Vector2(-29, -42), Vector2(-4, -101), Vector2(8, -101), Vector2(32, -42), Vector2(17, -42), Vector2(3, -78), Vector2(-12, -42)], WHITE)
+	_poly([Vector2(-5, -56), Vector2(4, -56), Vector2(8, -46), Vector2(-9, -46)], Color("#0d4265"))
+	_stroke([Vector2(-34, -7), Vector2(-54, 10)], OUTLINE, 22)
+	_stroke([Vector2(-34, -7), Vector2(-54, 10)], blue, 15)
+	_stroke([Vector2(34, -7), Vector2(54, 10)], OUTLINE, 22)
+	_stroke([Vector2(34, -7), Vector2(54, 10)], blue, 15)
+	_draw_attack_effect(WHITE)
+
+
+func _draw_ubuntu_boss() -> void:
+	var orange := Color("#e95420")
+	_draw_feet(Color("#3a2020"), 22)
+	_ellipse(Vector2(0, 15), 58, 64, OUTLINE)
+	_ellipse(Vector2(0, 12), 52, 58, Color("#772d21"))
+	_ellipse(Vector2(0, -67), 48, 47, OUTLINE)
+	_ellipse(Vector2(0, -68), 43, 42, orange)
+	# Three white nodes orbiting the Ubuntu-like central ring.
+	draw_arc(Vector2(0, -68), 24.0, -0.5, TAU - 0.5, 48, WHITE, 5.0, true)
+	for angle in [-PI / 2.0, PI / 6.0, 5.0 * PI / 6.0]:
+		var node_pos := Vector2(cos(angle) * 24.0, -68.0 + sin(angle) * 24.0)
+		_ellipse(node_pos, 6.5, 6.5, WHITE)
+	_ellipse(Vector2(0, -68), 8, 8, orange)
+	_stroke([Vector2(-34, -7), Vector2(-54, 10)], OUTLINE, 22)
+	_stroke([Vector2(-34, -7), Vector2(-54, 10)], orange, 15)
+	_stroke([Vector2(34, -7), Vector2(54, 10)], OUTLINE, 22)
+	_stroke([Vector2(34, -7), Vector2(54, 10)], orange, 15)
+	_draw_attack_effect(WHITE)
+
+
+func _draw_fedora_boss() -> void:
+	var blue := Color("#51a2da")
+	_draw_feet(Color("#d8ecff"), 22)
+	_ellipse(Vector2(0, 15), 57, 63, OUTLINE)
+	_ellipse(Vector2(0, 12), 51, 57, Color("#1b456c"))
+	_ellipse(Vector2(0, -68), 48, 47, OUTLINE)
+	_ellipse(Vector2(0, -68), 43, 42, blue)
+	# Fedora-inspired lowercase f / brim symbol.
+	_poly([Vector2(-8, -94), Vector2(5, -94), Vector2(5, -79), Vector2(20, -79), Vector2(20, -68), Vector2(5, -68), Vector2(5, -43), Vector2(-8, -43), Vector2(-8, -68), Vector2(-20, -68), Vector2(-20, -79), Vector2(-8, -79)], WHITE)
+	_stroke([Vector2(-34, -7), Vector2(-54, 10)], OUTLINE, 22)
+	_stroke([Vector2(-34, -7), Vector2(-54, 10)], blue, 15)
+	_stroke([Vector2(34, -7), Vector2(54, 10)], OUTLINE, 22)
+	_stroke([Vector2(34, -7), Vector2(54, 10)], blue, 15)
+	_draw_attack_effect(WHITE)
+
+
+func _draw_debian_boss() -> void:
+	var red := Color("#d70a53")
+	_draw_feet(Color("#dceefa"), 22)
+	_ellipse(Vector2(0, 15), 57, 63, OUTLINE)
+	_ellipse(Vector2(0, 12), 51, 57, Color("#671b3a"))
+	_ellipse(Vector2(0, -68), 48, 47, OUTLINE)
+	_ellipse(Vector2(0, -68), 43, 42, red)
+	# A bold curled Debian-inspired swirl mark.
+	draw_arc(Vector2(0, -68), 23.0, -2.5, 2.2, 48, WHITE, 8.0, true)
+	draw_arc(Vector2(5, -70), 12.0, -2.0, 2.4, 32, WHITE, 5.0, true)
+	_ellipse(Vector2(17, -56), 5, 5, WHITE)
+	_stroke([Vector2(-34, -7), Vector2(-54, 10)], OUTLINE, 22)
+	_stroke([Vector2(-34, -7), Vector2(-54, 10)], red, 15)
+	_stroke([Vector2(34, -7), Vector2(54, 10)], OUTLINE, 22)
+	_stroke([Vector2(34, -7), Vector2(54, 10)], red, 15)
+	_draw_attack_effect(WHITE)
