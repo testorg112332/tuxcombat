@@ -49,9 +49,14 @@ var shake_strength := 0.0
 var hit_sparks: Array[Dictionary] = []
 var boss_mode := false
 var active_boss_id := ""
+var pause_menu_layer: CanvasLayer
+var game_ui_layer: CanvasLayer
+var game_paused := false
 
 
 func _ready() -> void:
+	# The controller stays alive to receive the resume key while the scene tree is paused.
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	randomize()
 	_create_selection_screen()
 	queue_redraw()
@@ -207,9 +212,13 @@ func _update_selection_visuals() -> void:
 
 
 func _input(event: InputEvent) -> void:
-	if not selecting:
-		return
 	if event is InputEventKey and event.pressed and not event.echo:
+		if not selecting and (event.keycode == KEY_ESCAPE or event.keycode == KEY_P):
+			_toggle_pause()
+			get_viewport().set_input_as_handled()
+			return
+		if not selecting:
+			return
 		match event.keycode:
 			KEY_LEFT:
 				selected_index = (selected_index - 1 + CHARACTERS.size()) % CHARACTERS.size()
@@ -219,6 +228,103 @@ func _input(event: InputEvent) -> void:
 				_update_selection_visuals()
 			KEY_ENTER, KEY_KP_ENTER:
 				_start_game(selected_index)
+
+
+
+
+# -------------------------------------------------------------------
+# Pause menu
+# -------------------------------------------------------------------
+
+func _toggle_pause() -> void:
+	if selecting:
+		return
+	if game_paused:
+		_resume_game()
+	else:
+		_pause_game()
+
+
+func _pause_game() -> void:
+	if selecting or game_paused:
+		return
+	game_paused = true
+	get_tree().paused = true
+	_create_pause_menu()
+
+
+func _resume_game() -> void:
+	game_paused = false
+	get_tree().paused = false
+	if is_instance_valid(pause_menu_layer):
+		pause_menu_layer.queue_free()
+	pause_menu_layer = null
+
+
+func _restart_round_from_pause() -> void:
+	_resume_game()
+	_reset_round()
+
+
+func _create_pause_menu() -> void:
+	if is_instance_valid(pause_menu_layer):
+		pause_menu_layer.queue_free()
+	pause_menu_layer = CanvasLayer.new()
+	pause_menu_layer.name = "PauseMenuLayer"
+	pause_menu_layer.process_mode = Node.PROCESS_MODE_ALWAYS
+	pause_menu_layer.layer = 20
+	add_child(pause_menu_layer)
+
+	var dimmer := ColorRect.new()
+	dimmer.position = Vector2.ZERO
+	dimmer.size = SCREEN_SIZE
+	dimmer.color = Color(0.015, 0.025, 0.05, 0.78)
+	dimmer.mouse_filter = Control.MOUSE_FILTER_STOP
+	pause_menu_layer.add_child(dimmer)
+
+	var panel := Panel.new()
+	panel.position = Vector2(420, 155)
+	panel.size = Vector2(440, 410)
+	var panel_style := StyleBoxFlat.new()
+	panel_style.bg_color = Color("#101d31")
+	panel_style.border_color = Color("#62d9ff")
+	panel_style.set_border_width_all(2)
+	panel_style.set_corner_radius_all(16)
+	panel_style.shadow_color = Color(0, 0, 0, 0.55)
+	panel_style.shadow_size = 18
+	panel.add_theme_stylebox_override("panel", panel_style)
+	pause_menu_layer.add_child(panel)
+
+	var heading := _make_label("GAME PAUSED", Vector2(440, 185), Vector2(400, 62), 34, Color("#f2f8ff"))
+	pause_menu_layer.add_child(heading)
+	var subtitle := _make_label("THE ARENA IS FROZEN", Vector2(440, 239), Vector2(400, 28), 14, Color("#7dd3fc"))
+	pause_menu_layer.add_child(subtitle)
+
+	var resume_button := _pause_menu_button("RESUME  [ESC / P]", Vector2(490, 292), Color("#1d4960"), Color("#70e4ff"))
+	resume_button.pressed.connect(_resume_game)
+	pause_menu_layer.add_child(resume_button)
+
+	var restart_button := _pause_menu_button("RESTART ROUND", Vector2(490, 354), Color("#263753"), Color("#9ccaff"))
+	restart_button.pressed.connect(_restart_round_from_pause)
+	pause_menu_layer.add_child(restart_button)
+
+	var hint := _make_label("ESC or P resumes the fight", Vector2(440, 440), Vector2(400, 30), 13, Color("#91a9c5"))
+	pause_menu_layer.add_child(hint)
+
+
+func _pause_menu_button(button_text: String, pos: Vector2, fill: Color, border: Color) -> Button:
+	var button := Button.new()
+	button.text = button_text
+	button.position = pos
+	button.size = Vector2(300, 48)
+	button.add_theme_font_size_override("font_size", 16)
+	button.add_theme_color_override("font_color", Color("#f5fbff"))
+	button.add_theme_color_override("font_hover_color", Color("#ffffff"))
+	button.add_theme_stylebox_override("normal", _button_style(fill, border))
+	button.add_theme_stylebox_override("hover", _button_style(fill.lightened(0.14), border.lightened(0.15)))
+	button.add_theme_stylebox_override("pressed", _button_style(fill.darkened(0.18), border))
+	button.add_theme_stylebox_override("focus", _button_style(fill, border.lightened(0.2)))
+	return button
 
 
 func _select_character(index: int) -> void:
@@ -250,12 +356,14 @@ func _create_fighters(player_choice: int) -> void:
 	var cpu_data: Dictionary = CHARACTERS[cpu_choice]
 
 	p1 = FighterScene.new() as Fighter
+	p1.process_mode = Node.PROCESS_MODE_PAUSABLE
 	p1.add_to_group("fighters")
 	add_child(p1)
 	p1.setup(player_data["name"], 1, false, player_data["id"])
 	p1.strike.connect(_on_strike)
 
 	p2 = FighterScene.new() as Fighter
+	p2.process_mode = Node.PROCESS_MODE_PAUSABLE
 	p2.add_to_group("fighters")
 	add_child(p2)
 	p2.strike.connect(_on_strike)
@@ -303,8 +411,9 @@ func _create_ui() -> void:
 	add_child(arena_camera)
 	arena_camera.make_current()
 
-	var layer := CanvasLayer.new()
-	add_child(layer)
+	game_ui_layer = CanvasLayer.new()
+	add_child(game_ui_layer)
+	var layer := game_ui_layer
 
 	var title_panel := Panel.new()
 	title_panel.position = Vector2(510, 5)
@@ -350,7 +459,7 @@ func _create_ui() -> void:
 	status_panel.z_index = -1
 	layer.add_child(status_panel)
 
-	controls_label = _make_label("", Vector2(40, 670), Vector2(1200, 26), 12, Color("#91a9c5"))
+	controls_label = _make_label("ESC / P  PAUSE", Vector2(40, 670), Vector2(1200, 26), 12, Color("#91a9c5"))
 	layer.add_child(controls_label)
 
 
@@ -359,6 +468,8 @@ func _create_ui() -> void:
 # -------------------------------------------------------------------
 
 func _process(delta: float) -> void:
+	if game_paused:
+		return
 	if shake_timer > 0.0:
 		shake_timer = maxf(0.0, shake_timer - delta)
 		if is_instance_valid(arena_camera):
@@ -532,7 +643,8 @@ func _reset_round() -> void:
 
 
 func _finish_round_intro() -> void:
-	await get_tree().create_timer(INTRO_DELAY).timeout
+	# Round intro timing must freeze too; otherwise it could finish behind the pause menu.
+	await get_tree().create_timer(INTRO_DELAY, false).timeout
 	if not is_inside_tree():
 		return
 	if not round_locked and is_instance_valid(status_label):
