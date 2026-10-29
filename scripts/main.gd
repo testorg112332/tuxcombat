@@ -2,6 +2,7 @@ extends Node2D
 
 const FighterScene = preload("res://scripts/fighter.gd")
 const AeroHealthBarScript = preload("res://scripts/aero_health_bar.gd")
+const MascotEmblemScript = preload("res://scripts/mascot_emblem.gd")
 
 const CHARACTERS := [
 	{"id": "tux", "name": "Tux", "description": "Linux penguin • balanced", "tag": "THE ORIGINAL", "symbol": "🐧", "color": Color("#79d7ff")},
@@ -42,6 +43,10 @@ var p1_rounds := 0
 var p2_rounds := 0
 var round_locked := false
 var reset_timer := 0.0
+var arena_camera: Camera2D
+var shake_timer := 0.0
+var shake_strength := 0.0
+var hit_sparks: Array[Dictionary] = []
 
 
 func _ready() -> void:
@@ -114,8 +119,11 @@ func _create_selection_screen() -> void:
 		stripe.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		card.add_child(stripe)
 
-		var symbol := _make_label(character["symbol"], Vector2(0, 25), Vector2(264, 80), 48, character["color"])
-		card.add_child(symbol)
+		var emblem := MascotEmblemScript.new() as Node2D
+		emblem.character_id = character["id"]
+		emblem.position = Vector2(132, 69)
+		emblem.scale = Vector2(1.28, 1.28)
+		card.add_child(emblem)
 
 		var name_label := _make_label(character["name"].to_upper(), Vector2(12, 113), Vector2(240, 34), 25, Color("#f4f8ff"))
 		card.add_child(name_label)
@@ -258,6 +266,12 @@ func _create_fighters(player_choice: int) -> void:
 
 
 func _create_ui() -> void:
+	arena_camera = Camera2D.new()
+	arena_camera.position = Vector2(640, 360)
+	arena_camera.position_smoothing_enabled = false
+	add_child(arena_camera)
+	arena_camera.make_current()
+
 	var layer := CanvasLayer.new()
 	add_child(layer)
 
@@ -314,6 +328,25 @@ func _create_ui() -> void:
 # -------------------------------------------------------------------
 
 func _process(delta: float) -> void:
+	if shake_timer > 0.0:
+		shake_timer = maxf(0.0, shake_timer - delta)
+		if is_instance_valid(arena_camera):
+			var strength := shake_strength * (shake_timer / 0.18)
+			arena_camera.offset = Vector2(randf_range(-strength, strength), randf_range(-strength, strength))
+		if shake_timer <= 0.0 and is_instance_valid(arena_camera):
+			arena_camera.offset = Vector2.ZERO
+	for i in range(hit_sparks.size() - 1, -1, -1):
+		var spark: Dictionary = hit_sparks[i]
+		spark["life"] = float(spark["life"]) - delta
+		spark["position"] = spark["position"] + spark["velocity"] * delta
+		spark["velocity"] = spark["velocity"] * 0.90 + Vector2(0, 115) * delta
+		if float(spark["life"]) <= 0.0:
+			hit_sparks.remove_at(i)
+		else:
+			hit_sparks[i] = spark
+	if not hit_sparks.is_empty():
+		queue_redraw()
+
 	if selecting or not is_instance_valid(p1) or not is_instance_valid(p2):
 		return
 
@@ -363,6 +396,39 @@ func _on_strike(attacker: Fighter, damage: int, reach: float, attack_type: Strin
 	if direction == 0.0:
 		direction = attacker.facing
 	target.take_damage(damage, direction * KNOCKBACK)
+	_spawn_hit_spark(target.global_position + Vector2(-direction * 12.0, -48.0), attack_type, attacker)
+	shake_timer = 0.18 if attack_type == "kick" else 0.12
+	shake_strength = 7.0 if attack_type == "kick" else 4.0
+	if is_instance_valid(arena_camera):
+		arena_camera.offset = Vector2.ZERO
+	queue_redraw()
+
+
+func _spawn_hit_spark(hit_position: Vector2, attack_type: String, attacker: Fighter) -> void:
+	var spark_color := Color("#ffd43b") if attack_type == "kick" else Color("#7dd3fc")
+	if attacker.character_id == "beastie":
+		spark_color = Color("#ff657c")
+	elif attacker.character_id == "puffy":
+		spark_color = Color("#fff0a0")
+	elif attacker.character_id == "gnu":
+		spark_color = Color("#e8d9c5")
+	hit_sparks.append({
+		"position": hit_position,
+		"velocity": Vector2.ZERO,
+		"life": 0.24,
+		"color": spark_color,
+		"seed": randf() * TAU
+	})
+	for i in range(8):
+		var angle := TAU * float(i) / 8.0 + randf_range(-0.18, 0.18)
+		var speed := randf_range(90.0, 250.0)
+		hit_sparks.append({
+			"position": hit_position,
+			"velocity": Vector2(cos(angle), sin(angle)) * speed,
+			"life": randf_range(0.16, 0.30),
+			"color": spark_color,
+			"seed": randf() * TAU
+		})
 
 
 func _end_round() -> void:
@@ -461,3 +527,20 @@ func _draw() -> void:
 
 	draw_string(ThemeDB.fallback_font, Vector2(74, 401), "OPEN-SOURCE ARENA", HORIZONTAL_ALIGNMENT_LEFT, -1, 17, ACCENT_BLUE)
 	draw_string(ThemeDB.fallback_font, Vector2(1000, 401), "ROUND READY", HORIZONTAL_ALIGNMENT_LEFT, -1, 17, ACCENT_GREEN)
+
+	# Animated impact burst and debris, drawn in world space.
+	for spark in hit_sparks:
+		var pos: Vector2 = spark["position"]
+		var life_ratio := clampf(float(spark["life"]) / 0.30, 0.0, 1.0)
+		var color: Color = spark["color"]
+		color.a = life_ratio
+		var radius := 2.0 + (1.0 - life_ratio) * 4.0
+		draw_circle(pos, radius + 2.0, Color(1.0, 1.0, 1.0, 0.20 * life_ratio))
+		draw_circle(pos, radius, color)
+		if spark["velocity"].length() < 1.0:
+			var seed_angle := float(spark["seed"])
+			for ray in range(8):
+				var angle := seed_angle + TAU * float(ray) / 8.0
+				var start := pos + Vector2(cos(angle), sin(angle)) * 7.0
+				var finish := pos + Vector2(cos(angle), sin(angle)) * (18.0 + 8.0 * (1.0 - life_ratio))
+				draw_line(start, finish, color, 2.0, true)
