@@ -2,6 +2,7 @@
 extends Node2D
 
 const FighterScene = preload("res://scripts/fighter.gd")
+const AeroHealthBarScript = preload("res://scripts/aero_health_bar.gd")
 
 const CHARACTERS := [
 	{
@@ -44,10 +45,8 @@ const PUFFY_YELLOW := Color("#ffd43b")
 var p1: Fighter
 var p2: Fighter
 
-var p1_bar: ProgressBar
-var p2_bar: ProgressBar
-var p1_health_label: Label
-var p2_health_label: Label
+var p1_bar: Control
+var p2_bar: Control
 
 var status_label: Label
 var round_label: Label
@@ -142,6 +141,7 @@ func _update_selection_visuals() -> void:
 			if character["id"] == "puffy"
 			else Color.WHITE
 		)
+
 		button.add_theme_color_override("font_color", character_color)
 
 		if i == selected_index:
@@ -253,61 +253,49 @@ func _create_fighters(player_choice: int) -> void:
 		+ "   |   CPU: %s" % cpu_data["name"]
 	)
 
+	p1_bar.set_fighter_label(p1.fighter_name)
+	p2_bar.set_fighter_label(p2.fighter_name)
+
 	_reset_round()
 
 
 # -------------------------------------------------------------------
-# Heads-up display
+# Aero-style HUD
 # -------------------------------------------------------------------
 
 func _create_ui() -> void:
 	var layer := CanvasLayer.new()
 	add_child(layer)
 
-	p1_health_label = Label.new()
-	p1_health_label.position = Vector2(70, 22)
-	p1_health_label.size = Vector2(470, 28)
-	p1_health_label.text = "PLAYER 1"
-	p1_health_label.add_theme_font_size_override("font_size", 18)
-	layer.add_child(p1_health_label)
-
-	p2_health_label = Label.new()
-	p2_health_label.position = Vector2(740, 22)
-	p2_health_label.size = Vector2(470, 28)
-	p2_health_label.text = "CPU"
-	p2_health_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	p2_health_label.add_theme_font_size_override("font_size", 18)
-	layer.add_child(p2_health_label)
-
-	p1_bar = ProgressBar.new()
-	p1_bar.position = Vector2(70, 55)
-	p1_bar.size = Vector2(470, 28)
-	p1_bar.max_value = 100
-	p1_bar.value = 100
-	p1_bar.show_percentage = false
-	layer.add_child(p1_bar)
-
-	p2_bar = ProgressBar.new()
-	p2_bar.position = Vector2(740, 55)
-	p2_bar.size = Vector2(470, 28)
-	p2_bar.max_value = 100
-	p2_bar.value = 100
-	p2_bar.show_percentage = false
-	layer.add_child(p2_bar)
-
 	var title := Label.new()
 	title.text = "TUX COMBAT"
-	title.position = Vector2(515, 12)
+	title.position = Vector2(515, 7)
 	title.size = Vector2(250, 35)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 28)
+	title.add_theme_color_override("font_color", Color("#d9f3ff"))
 	layer.add_child(title)
 
+	# Left player's Aero glass health bar.
+	p1_bar = AeroHealthBarScript.new()
+	p1_bar.position = Vector2(70, 43)
+	p1_bar.size = Vector2(470, 38)
+	p1_bar.setup("PLAYER 1", 1, 100)
+	layer.add_child(p1_bar)
+
+	# Right player's Aero glass health bar.
+	p2_bar = AeroHealthBarScript.new()
+	p2_bar.position = Vector2(740, 43)
+	p2_bar.size = Vector2(470, 38)
+	p2_bar.setup("CPU", 2, 100)
+	layer.add_child(p2_bar)
+
 	round_label = Label.new()
-	round_label.position = Vector2(480, 85)
+	round_label.position = Vector2(480, 84)
 	round_label.size = Vector2(320, 30)
 	round_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	round_label.add_theme_font_size_override("font_size", 20)
+	round_label.add_theme_color_override("font_color", ACCENT_BLUE)
 	layer.add_child(round_label)
 
 	status_label = Label.new()
@@ -337,17 +325,8 @@ func _process(delta: float) -> void:
 	if not is_instance_valid(p1) or not is_instance_valid(p2):
 		return
 
-	p1_bar.value = p1.health
-	p2_bar.value = p2.health
-
-	p1_health_label.text = "%s  •  %d HP" % [
-		p1.fighter_name,
-		p1.health
-	]
-	p2_health_label.text = "%s  •  %d HP" % [
-		p2.fighter_name,
-		p2.health
-	]
+	p1_bar.set_health(p1.health)
+	p2_bar.set_health(p2.health)
 
 	round_label.text = "Round %d   •   %d - %d" % [
 		round_number,
@@ -406,6 +385,7 @@ func _on_strike(
 	var horizontal_distance := absf(
 		target.position.x - attacker.position.x
 	)
+
 	var vertical_distance := absf(
 		target.position.y - attacker.position.y
 	)
@@ -416,9 +396,9 @@ func _on_strike(
 	if vertical_distance >= HIT_VERTICAL_REACH:
 		return
 
-	# Do not allow attacks to connect behind the attacker.
 	var target_offset := target.position.x - attacker.position.x
 
+	# Prevent strikes from hitting a fighter behind the attacker.
 	if target_offset * attacker.facing < -8.0:
 		return
 
@@ -461,6 +441,9 @@ func _reset_round() -> void:
 
 	p1.reset_fighter(PLAYER_ONE_START)
 	p2.reset_fighter(PLAYER_TWO_START)
+
+	p1_bar.set_health(p1.max_health)
+	p2_bar.set_health(p2.max_health)
 
 	_finish_round_intro()
 
