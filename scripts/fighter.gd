@@ -239,7 +239,7 @@ func _try_attack(
 			adjusted_reach = 100.0
 
 	attack_cooldown = recovery
-	attack_flash = 0.16
+	attack_flash = 0.22
 	last_attack_type = attack_type
 
 	strike.emit(self, adjusted_damage, adjusted_reach, attack_type)
@@ -348,45 +348,42 @@ func _draw_attack_effect(color: Color) -> void:
 		return
 
 	var f := facing
-	var progress := 1.0 - clampf(attack_flash / 0.16, 0.0, 1.0)
-	var punch_color := color.lightened(0.22)
+	var progress := 1.0 - clampf(attack_flash / 0.22, 0.0, 1.0)
+	# Fast extension with a small amount of easing keeps the pose readable.
+	var extension := 1.0 - pow(1.0 - progress, 2.0)
+	var punch_color := color.lightened(0.16)
 	var kick_color := Color("#ffd43b") if character_id != "boss_ubuntu" else Color("#ff9b65")
 
 	if last_attack_type == "punch":
-		# Forward arm with a large glove/fist. The arm extends during the punch.
-		var fist := Vector2((62.0 + 26.0 * progress) * f, -34.0 - 9.0 * progress)
-		var elbow := Vector2((43.0 + 10.0 * progress) * f, -23.0 - 4.0 * progress)
-		_stroke([Vector2(27.0 * f, -12.0), elbow, fist], OUTLINE, 22.0)
-		_stroke([Vector2(27.0 * f, -12.0), elbow, fist], punch_color, 15.0)
-		_ellipse(fist, 14.0, 12.0, OUTLINE)
-		_ellipse(fist, 10.0, 9.0, WHITE)
-		_ellipse(fist + Vector2(2.0 * f, -1.0), 5.0, 5.0, punch_color)
-		# Short speed lines make the punch read as a forward strike.
-		for i in range(3):
-			var y := -42.0 + float(i) * 9.0
-			_stroke([
-				Vector2((fist.x - 30.0 * f), y),
-				Vector2((fist.x - (18.0 + float(i) * 2.0) * f), y - 2.0)
-			], punch_color, 2.5)
+		# Compact shoulder-to-fist line, with the glove kept close to the body.
+		var shoulder := Vector2(25.0 * f, -15.0)
+		var elbow := Vector2((35.0 + 5.0 * extension) * f, -21.0 - 2.0 * extension)
+		var fist := Vector2((48.0 + 20.0 * extension) * f, -28.0 - 5.0 * extension)
+		# Small afterimage streaks sit behind the fist rather than crossing the face.
+		for i in range(2):
+			var trail_start := fist - Vector2((15.0 + i * 7.0) * f, -float(i) * 4.0)
+			var trail_end := trail_start - Vector2(8.0 * f, 1.5)
+			_stroke([trail_start, trail_end], Color(punch_color.r, punch_color.g, punch_color.b, 0.38 - i * 0.12), 2.0)
+		_stroke([shoulder, elbow, fist], OUTLINE, 17.0)
+		_stroke([shoulder, elbow, fist], punch_color, 11.0)
+		_ellipse(fist, 10.0, 9.0, OUTLINE)
+		_ellipse(fist, 7.0, 6.5, WHITE)
+		_ellipse(fist + Vector2(1.5 * f, -1.0), 3.0, 3.0, punch_color)
 	else:
-		# A separate low sweeping kick: hip -> knee -> extended foot.
-		var knee := Vector2((36.0 + 12.0 * progress) * f, 30.0 - 8.0 * progress)
-		var foot := Vector2((62.0 + 34.0 * progress) * f, 22.0 - 27.0 * progress)
-		_stroke([Vector2(17.0 * f, 32.0), knee, foot], OUTLINE, 24.0)
-		_stroke([Vector2(17.0 * f, 32.0), knee, foot], kick_color, 16.0)
-		_ellipse(foot, 17.0, 9.0, OUTLINE)
-		_ellipse(foot + Vector2(2.0 * f, -1.0), 12.0, 5.5, WHITE)
-		# Curved-looking swoosh streaks distinguish the kick from the punch.
+		# A low, forward kick with a bent knee and a flatter foot silhouette.
+		var hip := Vector2(16.0 * f, 31.0)
+		var knee := Vector2((29.0 + 8.0 * extension) * f, 34.0 - 5.0 * extension)
+		var foot := Vector2((45.0 + 34.0 * extension) * f, 39.0 - 10.0 * extension)
+		# A single short arc gives the leg motion without cluttering the mascot.
 		_stroke([
-			Vector2((foot.x - 30.0 * f), foot.y - 20.0),
-			Vector2((foot.x - 16.0 * f), foot.y - 27.0),
-			Vector2((foot.x - 2.0 * f), foot.y - 23.0)
-		], kick_color, 4.0)
-		_stroke([
-			Vector2((foot.x - 25.0 * f), foot.y + 15.0),
-			Vector2((foot.x - 12.0 * f), foot.y + 20.0),
-			Vector2((foot.x + 1.0 * f), foot.y + 14.0)
-		], kick_color.darkened(0.12), 3.0)
+			Vector2((foot.x - 24.0 * f), foot.y - 13.0),
+			Vector2((foot.x - 12.0 * f), foot.y - 19.0),
+			Vector2((foot.x - 1.0 * f), foot.y - 16.0)
+		], Color(kick_color.r, kick_color.g, kick_color.b, 0.58), 3.0)
+		_stroke([hip, knee, foot], OUTLINE, 19.0)
+		_stroke([hip, knee, foot], kick_color, 12.0)
+		_ellipse(foot, 13.0, 6.5, OUTLINE)
+		_ellipse(foot + Vector2(2.0 * f, -0.5), 9.0, 3.5, WHITE)
 
 
 func _draw_feet(color: Color, width: float = 19.0) -> void:
