@@ -436,9 +436,6 @@ func _on_strike(attacker: Fighter, damage: int, reach: float, attack_type: Strin
 			attacker.position + Vector2(attacker.facing * 70.0 - 55.0, -49.0),
 			Vector2(110.0, 46.0)
 		)
-	if attacker.facing < 0.0:
-		attack_box.position.x = attacker.position.x - (attack_box.position.x - attacker.position.x) - attack_box.size.x
-
 	var hurt_box := Rect2(target.position + Vector2(-39.0, -112.0), Vector2(78.0, 118.0))
 	if not attack_box.intersects(hurt_box):
 		return
@@ -449,8 +446,7 @@ func _on_strike(attacker: Fighter, damage: int, reach: float, attack_type: Strin
 	var direction := signf(target_offset)
 	if direction == 0.0:
 		direction = attacker.facing
-	var boss_damage := 1.0 if not attacker.character_id.begins_with("boss_") else 1.25
-	target.take_damage(roundi(float(damage) * boss_damage), direction * (KNOCKBACK * (1.3 if attack_type == "kick" else 1.0)))
+	target.take_damage(damage, direction * (KNOCKBACK * (1.3 if attack_type == "kick" else 1.0)))
 	var impact_position := target.global_position + Vector2(-direction * 10.0, -65.0 if attack_type == "punch" else -35.0)
 	_spawn_hit_spark(impact_position, attack_type, attacker)
 	shake_timer = 0.22 if attack_type == "kick" else 0.14
@@ -468,6 +464,14 @@ func _spawn_hit_spark(hit_position: Vector2, attack_type: String, attacker: Figh
 		spark_color = Color("#fff0a0")
 	elif attacker.character_id == "gnu":
 		spark_color = Color("#e8d9c5")
+	elif attacker.character_id == "boss_arch":
+		spark_color = Color("#1793d1")
+	elif attacker.character_id == "boss_ubuntu":
+		spark_color = Color("#e95420")
+	elif attacker.character_id == "boss_fedora":
+		spark_color = Color("#51a2da")
+	elif attacker.character_id == "boss_debian":
+		spark_color = Color("#d70a53")
 	hit_sparks.append({
 		"position": hit_position,
 		"velocity": Vector2.ZERO,
@@ -484,7 +488,8 @@ func _spawn_hit_spark(hit_position: Vector2, attack_type: String, attacker: Figh
 			"velocity": Vector2(cos(angle), sin(angle)) * speed,
 			"life": randf_range(0.16, 0.30),
 			"color": spark_color,
-			"seed": randf() * TAU
+			"seed": randf() * TAU,
+			"kind": attack_type
 		})
 
 
@@ -601,8 +606,20 @@ func _draw() -> void:
 		draw_circle(pos, radius, color)
 		if spark["velocity"].length() < 1.0:
 			var seed_angle := float(spark["seed"])
-			for ray in range(8):
-				var angle := seed_angle + TAU * float(ray) / 8.0
-				var start := pos + Vector2(cos(angle), sin(angle)) * 7.0
-				var finish := pos + Vector2(cos(angle), sin(angle)) * (18.0 + 8.0 * (1.0 - life_ratio))
-				draw_line(start, finish, color, 2.0, true)
+			var kind := String(spark.get("kind", "punch"))
+			if kind == "punch":
+				# Compact starburst for a clean, sharp fist impact.
+				var points := PackedVector2Array()
+				for ray in range(12):
+					var angle := seed_angle + TAU * float(ray) / 12.0
+					var distance := 19.0 if ray % 2 == 0 else 8.0
+					points.append(pos + Vector2(cos(angle), sin(angle)) * distance * (1.0 - 0.18 * (1.0 - life_ratio)))
+				draw_colored_polygon(points, Color(color.r, color.g, color.b, 0.18 * life_ratio))
+				for ray in range(8):
+					var angle := seed_angle + TAU * float(ray) / 8.0
+					draw_line(pos + Vector2(cos(angle), sin(angle)) * 8.0, pos + Vector2(cos(angle), sin(angle)) * (22.0 + 8.0 * (1.0 - life_ratio)), color, 2.5, true)
+			else:
+				# Wider double arc for the heavier, sweeping kick impact.
+				var arc_radius := 18.0 + 12.0 * (1.0 - life_ratio)
+				draw_arc(pos, arc_radius, seed_angle - 1.2, seed_angle + 1.2, 24, color, 3.5, true)
+				draw_arc(pos, arc_radius * 0.62, seed_angle - 1.0, seed_angle + 1.0, 20, Color(color.r, color.g, color.b, 0.55 * life_ratio), 2.0, true)
