@@ -1,52 +1,41 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1000" height="320" viewBox="0 0 1000 320" role="img" aria-labelledby="title desc">
   <title id="title">Tux Combat</title>
-  <desc id="desc">Original dark neon fighting-game logo with a stylized penguin champion, crossed energy blades, and the Tux Combat wordmark.</desc>
+  <desc id="desc">Tux Combat logo featuring a classic Linux-style black penguin with a white belly, bright yellow beak and feet, and a bold arcade-fighting wordmark.</desc>
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#101a35"/>
-      <stop offset="1" stop-color="#080d1b"/>
-    </linearGradient>
-    <linearGradient id="cyan" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#70f4ff"/>
-      <stop offset="1" stop-color="#2585ff"/>
-    </linearGradient>
-    <linearGradient id="orange" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#ffe58a"/>
-      <stop offset="1" stop-color="#ff873d"/>
-    </linearGradient>
-    <linearGradient id="word" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#ffffff"/>
-      <stop offset="1" stop-color="#a8c7ff"/>
-    </linearGradient>
-    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
-      <feGaussianBlur stdDeviation="5" result="blur"/>
-      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-    </filter>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#111d35"/><stop offset="1" stop-color="#080c17"/></linearGradient>
+    <linearGradient id="ice" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a9f8ff"/><stop offset="1" stop-color="#2585ff"/></linearGradient>
+    <linearGradient id="beak" x1="0" y1="0" x2=".8" y2="1"><stop offset="0" stop-color="#fff09a"/><stop offset="1" stop-color="#f5a51b"/></linearGradient>
+    <linearGradient id="word" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#b9d2ff"/></linearGradient>
+    <filter id="softGlow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="4" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
   </defs>
   <rect x="8" y="8" width="984" height="304" rx="28" fill="url(#bg)" stroke="#29466d" stroke-width="3"/>
-  <path d="M28 244 L972 76 M28 274 L972 106" stroke="#1a3152" stroke-width="2" opacity=".7"/>
+  <path d="M28 246 L972 76 M28 275 L972 105" stroke="#1a3152" stroke-width="2" opacity=".65"/>
   <path d="M42 48 H205 M42 48 V92 M958 272 H795 M958 272 V228" fill="none" stroke="#54dfff" stroke-width="4" opacity=".85"/>
-  <g transform="translate(172 160)" filter="url(#glow)">
-    <circle r="105" fill="#0a1328" stroke="url(#cyan)" stroke-width="5"/>
-    <circle r="91" fill="none" stroke="#284d77" stroke-width="2" stroke-dasharray="7 9"/>
-    <path d="M-72 47 L-27 -12 L-9 2 L-48 63 Z" fill="url(#cyan)" stroke="#d8fbff" stroke-width="2"/>
-    <path d="M72 47 L27 -12 L9 2 L48 63 Z" fill="url(#orange)" stroke="#fff0c7" stroke-width="2"/>
-    <path d="M-54 44 L-33 24 M54 44 L33 24" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
-    <path d="M-48 23 Q-56 -38 -19 -62 Q0 -75 19 -62 Q56 -38 48 23 L36 56 Q0 75 -36 56 Z" fill="#101722" stroke="#7deeff" stroke-width="3"/>
-    <path d="M-32 -29 Q0 -49 32 -29 L28 34 Q0 53 -28 34 Z" fill="#f1f7ff"/>
-    <path d="M-31 -10 L-6 -5 L-18 6 Z M31 -10 L6 -5 L18 6 Z" fill="#15243b"/>
-    <path d="M-8 8 L8 8 L0 20 Z" fill="url(#orange)" stroke="#ffce71" stroke-width="1.5"/>
-    <path d="M-28 44 L-48 63 L-12 58 Z M28 44 L48 63 L12 58 Z" fill="url(#orange)"/>
-    <path d="M-63 -69 L-42 -55 M63 -69 L42 -55" stroke="#70f4ff" stroke-width="5" stroke-linecap="round"/>
-    <path d="M-75 0 H-60 M75 0 H60 M0 -83 V-68" stroke="#a9f8ff" stroke-width="3" stroke-linecap="round"/>
+  <!-- Original Tux-inspired fighter: black penguin, white belly, yellow beak and feet. -->
+  <g transform="translate(170 160)" filter="url(#softGlow)">
+    <circle r="106" fill="#0a1328" stroke="url(#ice)" stroke-width="5"/>
+    <circle r="92" fill="none" stroke="#284d77" stroke-width="2" stroke-dasharray="7 9"/>
+    <path d="M-82 -37 l-12 -8 M-79 -20 l-15 0 M79 -37 l12 -8 M79 -20 l15 0" stroke="#70f4ff" stroke-width="4" stroke-linecap="round"/>
+    <path d="M-42 62 Q-58 72 -72 88 Q-44 95 -17 80 L-13 69 Z" fill="url(#beak)" stroke="#c87d16" stroke-width="2"/>
+    <path d="M42 62 Q58 72 72 88 Q44 95 17 80 L13 69 Z" fill="url(#beak)" stroke="#c87d16" stroke-width="2"/>
+    <path d="M-49 -3 Q-77 4 -83 32 Q-85 49 -66 57 Q-53 46 -43 27 L-31 10 Z" fill="#151c28" stroke="#4e647e" stroke-width="2.5"/>
+    <path d="M49 -3 Q77 4 83 32 Q85 49 66 57 Q53 46 43 27 L31 10 Z" fill="#151c28" stroke="#4e647e" stroke-width="2.5"/>
+    <path d="M-52 28 Q-67 -7 -57 -43 Q-49 -79 -20 -87 Q0 -94 20 -87 Q49 -79 57 -43 Q67 -7 52 28 Q43 73 0 79 Q-43 73 -52 28 Z" fill="#171e29" stroke="#60718a" stroke-width="3"/>
+    <path d="M-37 -42 Q-26 -62 0 -61 Q26 -62 37 -42 Q45 -19 38 11 Q32 51 0 62 Q-32 51 -38 11 Q-45 -19 -37 -42 Z" fill="#f7f8f6"/>
+    <ellipse cx="-17" cy="-43" rx="10" ry="14" fill="#fff"/><ellipse cx="17" cy="-43" rx="10" ry="14" fill="#fff"/>
+    <ellipse cx="-15" cy="-40" rx="4.5" ry="7" fill="#101827"/><ellipse cx="19" cy="-40" rx="4.5" ry="7" fill="#101827"/>
+    <circle cx="-16.5" cy="-43" r="1.8" fill="#fff"/><circle cx="17.5" cy="-43" r="1.8" fill="#fff"/>
+    <path d="M-17 -24 Q0 -31 17 -24 L0 -5 Z" fill="url(#beak)" stroke="#c98216" stroke-width="1.5"/>
+    <path d="M-78 30 Q-72 42 -62 44 L-56 33 Q-68 31 -74 21 Z" fill="#36d8f5" stroke="#b9f8ff" stroke-width="1.5"/>
+    <path d="M78 30 Q72 42 62 44 L56 33 Q68 31 74 21 Z" fill="#ff9d4d" stroke="#ffe0ae" stroke-width="1.5"/>
   </g>
   <g transform="translate(320 0)">
     <text x="0" y="137" font-family="Arial, Helvetica, sans-serif" font-size="70" font-weight="900" letter-spacing="2" fill="url(#word)">TUX</text>
-    <text x="0" y="214" font-family="Arial, Helvetica, sans-serif" font-size="70" font-weight="900" letter-spacing="1" fill="url(#cyan)">COMBAT</text>
+    <text x="0" y="214" font-family="Arial, Helvetica, sans-serif" font-size="70" font-weight="900" letter-spacing="1" fill="url(#ice)">COMBAT</text>
     <path d="M3 237 H555" stroke="#385b84" stroke-width="3"/>
     <text x="5" y="272" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700" letter-spacing="5" fill="#a8c3e9">OPEN-SOURCE FIGHTING ARENA</text>
   </g>
-  <g fill="#ffce71" filter="url(#glow)">
+  <g fill="#ffce71" filter="url(#softGlow)">
     <path d="M883 47 l5 13 13 5 -13 5 -5 13 -5 -13 -13 -5 13 -5 Z"/>
     <path d="M925 128 l3 8 8 3 -8 3 -3 8 -3 -8 -8 -3 8 -3 Z"/>
     <path d="M802 267 l4 10 10 4 -10 4 -4 10 -4 -10 -10 -4 10 -4 Z"/>
