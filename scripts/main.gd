@@ -391,7 +391,7 @@ func _process(delta: float) -> void:
 					_setup_boss_opponent()
 				elif boss_mode:
 					# Boss defeated or boss won: return to the standard CPU roster.
-					var regular_choice := CHARACTERS[randi_range(0, CHARACTERS.size() - 1)]
+					var regular_choice: Dictionary = CHARACTERS[randi_range(0, CHARACTERS.size() - 1)]
 					_setup_regular_opponent(regular_choice)
 				round_number = 1
 				p1_rounds = 0
