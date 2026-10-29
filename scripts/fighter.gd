@@ -2,7 +2,7 @@
 extends CharacterBody2D
 class_name Fighter
 
-signal strike(attacker: Fighter, damage: int, reach: float)
+signal strike(attacker: Fighter, damage: int, reach: float, attack_type: String)
 
 var fighter_name := "Fighter"
 var character_id := "tux"
@@ -31,6 +31,7 @@ const KICK_REACH := 125.0
 
 var attack_cooldown := 0.0
 var attack_flash := 0.0
+var last_attack_type := ""
 var crouching := false
 var stunned := 0.0
 var ai_timer := 0.0
@@ -40,6 +41,14 @@ const OUTLINE := Color("#11131a")
 const WHITE := Color("#fffaf0")
 const SHADOW := Color("#080a10")
 const GOLD := Color("#ffad28")
+
+# Puffy's palette is deliberately yellow.
+const PUFFY_YELLOW := Color("#ffdf32")
+const PUFFY_DARK_YELLOW := Color("#d99a00")
+const PUFFY_LIGHT_YELLOW := Color("#fff5a6")
+const PUFFY_BELLY := Color("#fff0c2")
+const PUFFY_FIN := Color("#ffb91f")
+const PUFFY_CHEEK := Color("#ff9f9a")
 
 
 func setup(display_name: String, id: int, cpu: bool, style_id: String = "tux") -> void:
@@ -58,6 +67,7 @@ func reset_fighter(start_position: Vector2) -> void:
 	facing = 1.0 if start_position.x < ARENA_CENTER_X else -1.0
 	attack_cooldown = 0.0
 	attack_flash = 0.0
+	last_attack_type = ""
 	stunned = 0.0
 	ai_timer = 0.0
 	ai_choice = 0
@@ -142,9 +152,9 @@ func _process_player(grounded: bool, delta: float) -> void:
 		velocity.y = JUMP_SPEED
 
 	if punch:
-		_try_attack(PUNCH_DAMAGE, PUNCH_REACH, 0.24)
+		_try_attack(PUNCH_DAMAGE, PUNCH_REACH, 0.24, "punch")
 	elif kick:
-		_try_attack(KICK_DAMAGE, KICK_REACH, 0.32)
+		_try_attack(KICK_DAMAGE, KICK_REACH, 0.32, "kick")
 
 
 func _process_cpu(delta: float) -> void:
@@ -195,22 +205,38 @@ func _process_cpu(delta: float) -> void:
 		ai_choice = randi_range(0, 3)
 
 	if abs_distance < 145.0 and ai_choice <= 1:
-		_try_attack(
-			KICK_DAMAGE if ai_choice == 1 else PUNCH_DAMAGE,
-			KICK_REACH if ai_choice == 1 else PUNCH_REACH,
-			0.3
-		)
+		if ai_choice == 1:
+			_try_attack(KICK_DAMAGE, KICK_REACH, 0.3, "kick")
+		else:
+			_try_attack(PUNCH_DAMAGE, PUNCH_REACH, 0.3, "punch")
 	elif abs_distance > 250.0 and ai_choice == 2 and position.y >= GROUND_Y:
 		velocity.y = JUMP_SPEED
 
 
-func _try_attack(damage: int, reach: float, recovery: float) -> void:
+func _try_attack(
+	damage: int,
+	reach: float,
+	recovery: float,
+	attack_type: String
+) -> void:
 	if attack_cooldown > 0.0:
 		return
 
+	var adjusted_reach := reach
+
+	# Tux's attacks use tighter ranges than the other fighters.
+	if character_id == "tux":
+		if attack_type == "punch":
+			adjusted_reach = 82.0
+		elif attack_type == "kick":
+			adjusted_reach = 100.0
+
 	attack_cooldown = recovery
-	attack_flash = 0.12
-	strike.emit(self, damage, reach)
+	attack_flash = 0.16
+	last_attack_type = attack_type
+
+	strike.emit(self, damage, adjusted_reach, attack_type)
+	queue_redraw()
 
 
 func take_damage(amount: int, knockback: float) -> void:
@@ -240,7 +266,13 @@ func _draw() -> void:
 			_draw_tux()
 
 
-func _ellipse(center: Vector2, rx: float, ry: float, color: Color, segments: int = 32) -> void:
+func _ellipse(
+	center: Vector2,
+	rx: float,
+	ry: float,
+	color: Color,
+	segments: int = 32
+) -> void:
 	var safe_segments := maxi(3, segments)
 	var points := PackedVector2Array()
 
@@ -287,6 +319,47 @@ func _draw_attack_effect(color: Color) -> void:
 
 	var f := facing
 
+	if character_id == "tux":
+		if last_attack_type == "punch":
+			# Black bolt shooting forward from Tux's hands.
+			var bolt_points: Array[Vector2] = [
+				Vector2(39 * f, -13),
+				Vector2(52 * f, -24),
+				Vector2(61 * f, -15),
+				Vector2(76 * f, -34),
+				Vector2(75 * f, -21),
+				Vector2(96 * f, -29)
+			]
+
+			_stroke(bolt_points, OUTLINE, 12.0)
+			_stroke(bolt_points, Color("#252936"), 7.0)
+			_stroke([
+				Vector2(43 * f, -13),
+				Vector2(59 * f, -19),
+				Vector2(78 * f, -25)
+			], Color("#080a10"), 3.0)
+
+		elif last_attack_type == "kick":
+			# Yellow lightning bolts around Tux's feet.
+			var kick_bolt: Array[Vector2] = [
+				Vector2(24 * f, 43),
+				Vector2(39 * f, 49),
+				Vector2(32 * f, 59),
+				Vector2(50 * f, 64),
+				Vector2(43 * f, 77)
+			]
+
+			_stroke(kick_bolt, OUTLINE, 10.0)
+			_stroke(kick_bolt, Color("#ffd43b"), 6.0)
+			_stroke([
+				Vector2(31 * f, 46),
+				Vector2(27 * f, 54),
+				Vector2(40 * f, 60)
+			], Color("#fff5a6"), 3.0)
+
+		return
+
+	# Existing attack visuals for GNU, Beastie and Puffy.
 	_stroke([
 		Vector2(37 * f, -12),
 		Vector2(65 * f, -25),
@@ -311,24 +384,27 @@ func _draw_tux() -> void:
 	var black := Color("#171c24")
 	var belly := Color("#fffaf0")
 	var orange := Color("#ff9f1c")
+	var f := facing
 
 	_draw_feet(orange, 20)
 
+	# Arms.
 	_stroke([Vector2(-34, -5), Vector2(-62, 12), Vector2(-68, 21)], OUTLINE, 23)
 	_stroke([Vector2(34, -5), Vector2(62, 12), Vector2(68, 21)], OUTLINE, 23)
 	_stroke([Vector2(-34, -5), Vector2(-62, 12), Vector2(-68, 21)], black, 17)
 	_stroke([Vector2(34, -5), Vector2(62, 12), Vector2(68, 21)], black, 17)
 
+	# Body.
 	_ellipse(Vector2(0, 17), 51, 64, OUTLINE)
 	_ellipse(Vector2(0, 15), 46, 59, black)
 	_ellipse(Vector2(0, 24), 32, 43, belly)
 
+	# Head.
 	_ellipse(Vector2(0, -66), 51, 49, OUTLINE)
 	_ellipse(Vector2(0, -66), 46, 44, black)
 	_ellipse(Vector2(0, -48), 34, 29, belly)
 
-	var f := facing
-
+	# Beak.
 	_poly([
 		Vector2(28 * f, -69),
 		Vector2(52 * f, -61),
@@ -341,8 +417,11 @@ func _draw_tux() -> void:
 		Vector2(30 * f, -55)
 	], orange)
 
+	# Eyes.
 	_eye(Vector2(18 * f, -81), 8)
 	_ellipse(Vector2(-15 * f, -83), 5, 6, Color("#11131a"))
+
+	# Keep attack effects on top of the character.
 	_draw_attack_effect(orange)
 
 
@@ -517,18 +596,9 @@ func _draw_beastie() -> void:
 
 
 func _draw_puffy() -> void:
-	# Puffy is the YELLOW OpenBSD pufferfish.
-	# Keep all of Puffy's visible body colors in the yellow palette.
-	const PUFFY_YELLOW := Color("#ffdf32")
-	const PUFFY_DARK_YELLOW := Color("#d99a00")
-	const PUFFY_LIGHT_YELLOW := Color("#fff5a6")
-	const PUFFY_BELLY := Color("#fff0c2")
-	const PUFFY_FIN := Color("#ffb91f")
-	const PUFFY_CHEEK := Color("#ff9f9a")
-
 	var f := facing
 
-	# Tail fin behind the fish.
+	# Tail fin.
 	_poly([
 		Vector2(-37, 9), Vector2(-65, -5),
 		Vector2(-71, 13), Vector2(-64, 31),
@@ -541,7 +611,7 @@ func _draw_puffy() -> void:
 		Vector2(-40, 22)
 	], PUFFY_FIN)
 
-	# Small fish-like bottom fins.
+	# Bottom fins.
 	_poly([
 		Vector2(-28, 50), Vector2(-43, 75),
 		Vector2(-15, 68), Vector2(-8, 53)
@@ -562,7 +632,7 @@ func _draw_puffy() -> void:
 		Vector2(17, 64), Vector2(10, 53)
 	], PUFFY_FIN)
 
-	# Main round yellow body.
+	# Main yellow body and cream belly.
 	_ellipse(Vector2(0, 0), 57, 69, OUTLINE)
 	_ellipse(Vector2(0, 0), 52, 64, PUFFY_YELLOW)
 	_ellipse(Vector2(-8, -12), 35, 35, PUFFY_LIGHT_YELLOW)
@@ -589,12 +659,11 @@ func _draw_puffy() -> void:
 		Vector2(59, -5), Vector2(45, 2)
 	], PUFFY_FIN)
 
-	# Spines around the silhouette: yellow, with dark outlines.
+	# Spines.
 	for i in range(9):
 		var angle := PI + float(i) * PI / 8.0
 		var inner := Vector2(cos(angle) * 52, sin(angle) * 62)
 		var outer := Vector2(cos(angle) * 66, sin(angle) * 78)
-
 		draw_line(inner, outer, OUTLINE, 9, true)
 		draw_line(inner, outer, PUFFY_LIGHT_YELLOW, 5, true)
 
@@ -602,21 +671,19 @@ func _draw_puffy() -> void:
 		var angle := -0.15 + float(i) * PI / 7.0
 		var inner := Vector2(cos(angle) * 51, sin(angle) * 61)
 		var outer := Vector2(cos(angle) * 64, sin(angle) * 76)
-
 		draw_line(inner, outer, OUTLINE, 8, true)
 		draw_line(inner, outer, PUFFY_LIGHT_YELLOW, 4, true)
 
-	# Eyes and tiny fish mouth.
+	# Face.
 	_eye(Vector2(19 * f, -24), 8)
 	_ellipse(Vector2(-11 * f, -25), 6, 7, OUTLINE)
 	_ellipse(Vector2(31 * f, -5), 6, 4, OUTLINE)
 	_ellipse(Vector2(32 * f, -6), 3, 2, PUFFY_CHEEK)
 
-	# Yellow scales and spots.
+	# Yellow scales and details.
 	_ellipse(Vector2(-25, 4), 4, 4, PUFFY_LIGHT_YELLOW)
 	_ellipse(Vector2(-31, 19), 3, 3, PUFFY_DARK_YELLOW)
 	_ellipse(Vector2(13, 38), 4, 3, PUFFY_DARK_YELLOW)
 	_ellipse(Vector2(-9, 43), 3, 3, PUFFY_DARK_YELLOW)
 
-	# Yellow-white attack swipe.
 	_draw_attack_effect(PUFFY_LIGHT_YELLOW)
