@@ -1,5 +1,9 @@
 # 🐧 Tux Combat
 
+<p align="center">
+  <img src="sources/tuxcombat-logo.svg" alt="Tux Combat — Open-Source Fighting Arena" width="800">
+</p>
+
 Tux Combat is a small Godot 2D mascot fighting-game prototype built around Linux, Unix, BSD, and open-source culture.
 
 ## Current prototype
