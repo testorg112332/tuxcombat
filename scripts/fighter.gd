@@ -292,6 +292,14 @@ func _draw() -> void:
 			_draw_fedora_boss()
 		"boss_debian":
 			_draw_debian_boss()
+		"boss_nix":
+			_draw_nix_boss()
+		"boss_kali":
+			_draw_kali_boss()
+		"boss_mint":
+			_draw_mint_boss()
+		"boss_gentoo":
+			_draw_gentoo_boss()
 		_:
 			_draw_tux()
 
@@ -776,4 +784,72 @@ func _draw_debian_boss() -> void:
 	_stroke([Vector2(-34, -7), Vector2(-54, 10)], red, 15)
 	_stroke([Vector2(34, -7), Vector2(54, 10)], OUTLINE, 22)
 	_stroke([Vector2(34, -7), Vector2(54, 10)], red, 15)
+	_draw_attack_effect(WHITE)
+
+
+func _draw_nix_boss() -> void:
+	var ice := Color("#7ebae4")
+	_draw_feet(Color("#d8f2ff"), 22)
+	_ellipse(Vector2(0, 15), 57, 63, OUTLINE)
+	_ellipse(Vector2(0, 12), 51, 57, Color("#294d70"))
+	_ellipse(Vector2(0, -68), 48, 47, OUTLINE)
+	_ellipse(Vector2(0, -68), 43, 42, ice)
+	# Snowflake-like Nix mark: a crisp central diamond and branching arms.
+	_poly([Vector2(0,-95),Vector2(10,-79),Vector2(26,-83),Vector2(18,-68),Vector2(29,-52),Vector2(10,-57),Vector2(0,-41),Vector2(-10,-57),Vector2(-29,-52),Vector2(-18,-68),Vector2(-26,-83),Vector2(-10,-79)], WHITE)
+	_stroke([Vector2(-34,-7),Vector2(-54,10)],OUTLINE,22)
+	_stroke([Vector2(-34,-7),Vector2(-54,10)],ice,15)
+	_stroke([Vector2(34,-7),Vector2(54,10)],OUTLINE,22)
+	_stroke([Vector2(34,-7),Vector2(54,10)],ice,15)
+	_draw_attack_effect(WHITE)
+
+
+func _draw_kali_boss() -> void:
+	var slate := Color("#557c94")
+	_draw_feet(Color("#d6e3ea"), 22)
+	_ellipse(Vector2(0,15),57,63,OUTLINE)
+	_ellipse(Vector2(0,12),51,57,Color("#263b4b"))
+	_ellipse(Vector2(0,-68),48,47,OUTLINE)
+	_ellipse(Vector2(0,-68),43,42,slate)
+	# Stylized dragon-like Kali curl, intentionally original rather than an exact logo.
+	_stroke([Vector2(-24,-82),Vector2(-7,-91),Vector2(12,-84),Vector2(20,-70),Vector2(9,-57),Vector2(-7,-60),Vector2(-13,-70),Vector2(1,-76),Vector2(12,-70)],WHITE,7)
+	_poly([Vector2(15,-84),Vector2(32,-91),Vector2(25,-76)],WHITE)
+	_stroke([Vector2(-34,-7),Vector2(-54,10)],OUTLINE,22)
+	_stroke([Vector2(-34,-7),Vector2(-54,10)],slate,15)
+	_stroke([Vector2(34,-7),Vector2(54,10)],OUTLINE,22)
+	_stroke([Vector2(34,-7),Vector2(54,10)],slate,15)
+	_draw_attack_effect(WHITE)
+
+
+func _draw_mint_boss() -> void:
+	var mint := Color("#87cf3e")
+	_draw_feet(Color("#e6f6d6"),22)
+	_ellipse(Vector2(0,15),57,63,OUTLINE)
+	_ellipse(Vector2(0,12),51,57,Color("#345b2c"))
+	_ellipse(Vector2(0,-68),48,47,OUTLINE)
+	_ellipse(Vector2(0,-68),43,42,mint)
+	# Original mint-leaf crest.
+	_poly([Vector2(0,-96),Vector2(17,-86),Vector2(23,-70),Vector2(13,-55),Vector2(0,-50),Vector2(-13,-55),Vector2(-23,-70),Vector2(-17,-86)],WHITE)
+	_stroke([Vector2(0,-88),Vector2(0,-58)],mint.darkened(0.4),3)
+	_stroke([Vector2(-34,-7),Vector2(-54,10)],OUTLINE,22)
+	_stroke([Vector2(-34,-7),Vector2(-54,10)],mint,15)
+	_stroke([Vector2(34,-7),Vector2(54,10)],OUTLINE,22)
+	_stroke([Vector2(34,-7),Vector2(54,10)],mint,15)
+	_draw_attack_effect(WHITE)
+
+
+func _draw_gentoo_boss() -> void:
+	var violet := Color("#b59af0")
+	_draw_feet(Color("#eee6ff"),22)
+	_ellipse(Vector2(0,15),57,63,OUTLINE)
+	_ellipse(Vector2(0,12),51,57,Color("#47396e"))
+	_ellipse(Vector2(0,-68),48,47,OUTLINE)
+	_ellipse(Vector2(0,-68),43,42,violet)
+	# Original stylized G-shaped spiral crest.
+	draw_arc(Vector2(-1,-68),22.0,-2.7,2.5,40,WHITE,7.0,true)
+	draw_arc(Vector2(5,-68),10.0,-2.3,2.3,28,WHITE,4.0,true)
+	_stroke([Vector2(2,-68),Vector2(22,-68)],WHITE,5)
+	_stroke([Vector2(-34,-7),Vector2(-54,10)],OUTLINE,22)
+	_stroke([Vector2(-34,-7),Vector2(-54,10)],violet,15)
+	_stroke([Vector2(34,-7),Vector2(54,10)],OUTLINE,22)
+	_stroke([Vector2(34,-7),Vector2(54,10)],violet,15)
 	_draw_attack_effect(WHITE)
