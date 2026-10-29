@@ -268,7 +268,11 @@ const DISTRO_BOSSES := [
 	{"id": "boss_arch", "name": "Arch Warden", "color": Color("#1793d1"), "tagline": "ROLLING RELEASE"},
 	{"id": "boss_ubuntu", "name": "Ubuntu Overlord", "color": Color("#e95420"), "tagline": "CIRCLE OF FRIENDS"},
 	{"id": "boss_fedora", "name": "Fedora Sentinel", "color": Color("#51a2da"), "tagline": "INNOVATION CORE"},
-	{"id": "boss_debian", "name": "Debian Maelstrom", "color": Color("#d70a53"), "tagline": "UNIVERSAL CHAOS"}
+	{"id": "boss_debian", "name": "Debian Maelstrom", "color": Color("#d70a53"), "tagline": "UNIVERSAL CHAOS"},
+	{"id": "boss_nix", "name": "Nix Frostbyte", "color": Color("#7ebae4"), "tagline": "PURE REPRODUCIBILITY"},
+	{"id": "boss_kali", "name": "Kali Nightfall", "color": Color("#557c94"), "tagline": "OFFENSIVE EDGE"},
+	{"id": "boss_mint", "name": "Mint Verdant", "color": Color("#87cf3e"), "tagline": "FRESH AND STABLE"},
+	{"id": "boss_gentoo", "name": "Gentoo Overclock", "color": Color("#b59af0"), "tagline": "COMPILE YOUR DESTINY"}
 ]
 
 
