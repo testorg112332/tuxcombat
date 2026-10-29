@@ -255,6 +255,21 @@ func take_damage(amount: int, knockback: float) -> void:
 # -------------------------------------------------------------------
 
 func _draw() -> void:
+	# Subtle procedural motion adds life without requiring imported sprite sheets.
+	var tick := float(Time.get_ticks_msec()) / 1000.0
+	var moving := absf(velocity.x) > 35.0 and position.y >= GROUND_Y - 2.0
+	var bob := sin(tick * (12.0 if moving else 2.6)) * (2.5 if moving else 1.0)
+	var squash := Vector2(1.0, 1.0)
+	if crouching:
+		squash = Vector2(1.07, 0.84)
+	elif moving:
+		squash = Vector2(0.97, 1.03)
+	if attack_flash > 0.0:
+		squash.x *= 1.06
+		squash.y *= 0.97
+	var lean := -0.09 * facing if attack_flash > 0.0 else 0.025 * sin(tick * 2.0)
+	draw_set_transform(Vector2(0, bob), lean, squash)
+	_ellipse(Vector2(0, 82), 30, 6, Color(0.0, 0.0, 0.0, 0.25))
 	match character_id:
 		"gnu":
 			_draw_gnu()
