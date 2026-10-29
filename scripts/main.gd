@@ -52,6 +52,7 @@ var active_boss_id := ""
 var pause_menu_layer: CanvasLayer
 var game_ui_layer: CanvasLayer
 var game_paused := false
+var pause_key_was_down := false
 
 
 func _ready() -> void:
@@ -213,10 +214,6 @@ func _update_selection_visuals() -> void:
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
-		if not selecting and (event.keycode == KEY_ESCAPE or event.keycode == KEY_P):
-			_toggle_pause()
-			get_viewport().set_input_as_handled()
-			return
 		if not selecting:
 			return
 		match event.keycode:
@@ -468,6 +465,13 @@ func _create_ui() -> void:
 # -------------------------------------------------------------------
 
 func _process(delta: float) -> void:
+	# Poll the pause keys here instead of relying only on GUI/input-event routing.
+	# The root runs in PROCESS_MODE_ALWAYS, so this also works while the tree is paused.
+	var pause_key_down := Input.is_key_pressed(KEY_ESCAPE) or Input.is_key_pressed(KEY_P)
+	if pause_key_down and not pause_key_was_down and not selecting:
+		_toggle_pause()
+	pause_key_was_down = pause_key_down
+
 	if game_paused:
 		return
 	if shake_timer > 0.0:
