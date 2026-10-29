@@ -335,6 +335,7 @@ func _process(delta: float) -> void:
 			arena_camera.offset = Vector2(randf_range(-strength, strength), randf_range(-strength, strength))
 		if shake_timer <= 0.0 and is_instance_valid(arena_camera):
 			arena_camera.offset = Vector2.ZERO
+	var had_sparks := not hit_sparks.is_empty()
 	for i in range(hit_sparks.size() - 1, -1, -1):
 		var spark: Dictionary = hit_sparks[i]
 		spark["life"] = float(spark["life"]) - delta
@@ -344,7 +345,7 @@ func _process(delta: float) -> void:
 			hit_sparks.remove_at(i)
 		else:
 			hit_sparks[i] = spark
-	if not hit_sparks.is_empty():
+	if had_sparks:
 		queue_redraw()
 
 	if selecting or not is_instance_valid(p1) or not is_instance_valid(p2):
