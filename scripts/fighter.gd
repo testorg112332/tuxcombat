@@ -28,9 +28,11 @@ const PUNCH_DAMAGE := 7
 const KICK_DAMAGE := 10
 const PUNCH_REACH := 105.0
 const KICK_REACH := 125.0
+const ATTACK_ANIM_DURATION := 0.34
 
 var attack_cooldown := 0.0
 var attack_flash := 0.0
+var hit_reaction := 0.0
 var last_attack_type := ""
 var crouching := false
 var stunned := 0.0
@@ -68,6 +70,7 @@ func reset_fighter(start_position: Vector2) -> void:
 	facing = 1.0 if start_position.x < ARENA_CENTER_X else -1.0
 	attack_cooldown = 0.0
 	attack_flash = 0.0
+	hit_reaction = 0.0
 	last_attack_type = ""
 	stunned = 0.0
 	ai_timer = 0.0
@@ -79,6 +82,7 @@ func reset_fighter(start_position: Vector2) -> void:
 func _physics_process(delta: float) -> void:
 	stunned = maxf(0.0, stunned - delta)
 	attack_cooldown = maxf(0.0, attack_cooldown - delta)
+	hit_reaction = maxf(0.0, hit_reaction - delta)
 
 	if attack_flash > 0.0:
 		attack_flash = maxf(0.0, attack_flash - delta)
@@ -239,7 +243,7 @@ func _try_attack(
 			adjusted_reach = 100.0
 
 	attack_cooldown = recovery
-	attack_flash = 0.22
+	attack_flash = ATTACK_ANIM_DURATION
 	last_attack_type = attack_type
 
 	strike.emit(self, adjusted_damage, adjusted_reach, attack_type)
@@ -251,6 +255,8 @@ func take_damage(amount: int, knockback: float) -> void:
 		return
 
 	health = maxi(0, health - amount)
+	hit_reaction = 0.24
+	attack_flash = 0.0
 	stunned = maxf(stunned, 0.16)
 	velocity.x += knockback
 	queue_redraw()
@@ -262,21 +268,74 @@ func take_damage(amount: int, knockback: float) -> void:
 # -------------------------------------------------------------------
 
 func _draw() -> void:
-	# Subtle procedural motion adds life without requiring imported sprite sheets.
+	# Layered procedural animation: anticipation, impact recoil, and follow-through.
 	var tick := float(Time.get_ticks_msec()) / 1000.0
-	var moving := absf(velocity.x) > 35.0 and position.y >= GROUND_Y - 2.0
-	var bob := sin(tick * (12.0 if moving else 2.6)) * (2.5 if moving else 1.0)
+	var grounded := position.y >= GROUND_Y - 2.0
+	var moving := absf(velocity.x) > 35.0 and grounded
+	var airborne := not grounded
+	var speed_ratio := clampf(absf(velocity.x) / SPEED, 0.0, 1.0)
+	var bob := sin(tick * (13.0 if moving else 2.8)) * (3.0 if moving else 1.15)
 	var squash := Vector2(1.0, 1.0)
+	var lean := 0.025 * sin(tick * 2.0)
+
+	if moving:
+		# Stretch on the stride, squash on the landing beat.
+		var stride := sin(tick * 13.0)
+		squash = Vector2(1.0 + absf(stride) * 0.035, 1.0 - absf(stride) * 0.045)
+		lean += -facing * speed_ratio * 0.09
+		bob += absf(stride) * 1.5
+
+	if airborne:
+		squash = Vector2(0.91, 1.10)
+		lean += clampf(velocity.x / SPEED, -1.0, 1.0) * 0.06
+		bob -= 2.0
+
 	if crouching:
-		squash = Vector2(1.07, 0.84)
-	elif moving:
-		squash = Vector2(0.97, 1.03)
+		squash = Vector2(1.09, 0.80)
+		bob = 3.0
+
 	if attack_flash > 0.0:
-		squash.x *= 1.06
-		squash.y *= 0.97
-	var lean := -0.09 * facing if attack_flash > 0.0 else 0.025 * sin(tick * 2.0)
+		var attack_progress := 1.0 - clampf(attack_flash / ATTACK_ANIM_DURATION, 0.0, 1.0)
+		if attack_progress < 0.24:
+			# Pull back before the strike so the attack has readable anticipation.
+			lean += 0.10 * facing
+			squash.x *= 0.94
+			squash.y *= 1.045
+			bob -= 1.5
+		elif attack_progress < 0.62:
+			lean -= 0.15 * facing
+			squash.x *= 1.10
+			squash.y *= 0.91
+		else:
+			# The body settles after extending rather than snapping straight back.
+			lean -= 0.04 * facing
+			squash.x *= 1.035
+			squash.y *= 0.97
+
+	if hit_reaction > 0.0:
+		var recoil := hit_reaction / 0.24
+		lean += facing * 0.16 * recoil
+		squash.x *= 1.0 - 0.07 * recoil
+		squash.y *= 1.0 + 0.09 * recoil
+		bob += 2.5 * recoil
+
 	draw_set_transform(Vector2(0, bob), lean, squash)
-	_ellipse(Vector2(0, 82), 30, 6, Color(0.0, 0.0, 0.0, 0.25))
+	_ellipse(Vector2(0, 82), 30 + speed_ratio * 3.0, 6, Color(0.0, 0.0, 0.0, 0.25))
+
+	# Short speed streaks make fast movement feel snappier without hiding the mascot.
+	if moving and speed_ratio > 0.25:
+		var streak_color := Color(0.82, 0.9, 1.0, 0.20 + speed_ratio * 0.18)
+		for i in range(3):
+			var streak_y := -8.0 + float(i) * 15.0
+			var streak_len := 12.0 + speed_ratio * 22.0 - float(i) * 3.0
+			draw_line(
+				Vector2(-facing * (39.0 + float(i) * 4.0), streak_y),
+				Vector2(-facing * (39.0 + streak_len), streak_y),
+				streak_color,
+				2.0,
+				true
+			)
+
 	match character_id:
 		"gnu":
 			_draw_gnu()
@@ -303,6 +362,11 @@ func _draw() -> void:
 		_:
 			_draw_tux()
 
+	# Brief impact flash around the fighter's silhouette.
+	if hit_reaction > 0.0:
+		var flash_alpha := clampf(hit_reaction / 0.24, 0.0, 1.0) * 0.42
+		var flash_color := Color(1.0, 0.92, 0.76, flash_alpha)
+		draw_arc(Vector2(0, -27), 66.0, -2.9, 2.5, 28, flash_color, 3.0, true)
 
 func _ellipse(
 	center: Vector2,
@@ -356,43 +420,56 @@ func _draw_attack_effect(color: Color) -> void:
 		return
 
 	var f := facing
-	var progress := 1.0 - clampf(attack_flash / 0.22, 0.0, 1.0)
-	# Fast extension with a small amount of easing keeps the pose readable.
-	var extension := 1.0 - pow(1.0 - progress, 2.0)
+	var progress := 1.0 - clampf(attack_flash / ATTACK_ANIM_DURATION, 0.0, 1.0)
+	var windup := 1.0 - clampf(progress / 0.24, 0.0, 1.0)
+	var strike_phase := clampf((progress - 0.20) / 0.42, 0.0, 1.0)
+	var follow_through := clampf((progress - 0.62) / 0.38, 0.0, 1.0)
+	var extension := 1.0 - pow(1.0 - strike_phase, 2.0)
 	var punch_color := color.lightened(0.16)
 	var kick_color := Color("#ffd43b") if character_id != "boss_ubuntu" else Color("#ff9b65")
 
 	if last_attack_type == "punch":
-		# Compact shoulder-to-fist line, with the glove kept close to the body.
+		# Wind the fist back, snap forward, then let the arm recoil naturally.
 		var shoulder := Vector2(25.0 * f, -15.0)
-		var elbow := Vector2((35.0 + 5.0 * extension) * f, -21.0 - 2.0 * extension)
-		var fist := Vector2((48.0 + 20.0 * extension) * f, -28.0 - 5.0 * extension)
-		# Small afterimage streaks sit behind the fist rather than crossing the face.
-		for i in range(2):
-			var trail_start := fist - Vector2((15.0 + i * 7.0) * f, -float(i) * 4.0)
-			var trail_end := trail_start - Vector2(8.0 * f, 1.5)
-			_stroke([trail_start, trail_end], Color(punch_color.r, punch_color.g, punch_color.b, 0.38 - i * 0.12), 2.0)
-		_stroke([shoulder, elbow, fist], OUTLINE, 17.0)
-		_stroke([shoulder, elbow, fist], punch_color, 11.0)
-		_ellipse(fist, 10.0, 9.0, OUTLINE)
-		_ellipse(fist, 7.0, 6.5, WHITE)
+		var pullback := windup * 9.0
+		var reach_bonus := extension * 23.0 - follow_through * 5.0
+		var elbow := Vector2((35.0 - pullback * 0.55 + extension * 7.0) * f, -21.0 - extension * 4.0)
+		var fist := Vector2((48.0 - pullback + reach_bonus) * f, -28.0 - extension * 7.0 + follow_through * 3.0)
+		if progress > 0.22 and progress < 0.82:
+			var trail_alpha := 0.48 * (1.0 - follow_through)
+			for i in range(3):
+				var offset := 12.0 + float(i) * 8.0
+				var trail_start := fist - Vector2(offset * f, -float(i) * 3.0)
+				var trail_end := trail_start - Vector2((9.0 + float(i) * 2.0) * f, 1.0)
+				var alpha := trail_alpha * (1.0 - float(i) * 0.24)
+				_stroke([trail_start, trail_end], Color(punch_color.r, punch_color.g, punch_color.b, alpha), 2.2)
+		_stroke([shoulder, elbow, fist], OUTLINE, 18.0)
+		_stroke([shoulder, elbow, fist], punch_color, 12.0)
+		_ellipse(fist, 11.0, 10.0, OUTLINE)
+		_ellipse(fist, 7.5, 7.0, WHITE)
 		_ellipse(fist + Vector2(1.5 * f, -1.0), 3.0, 3.0, punch_color)
+		if progress > 0.30 and progress < 0.58:
+			var ring_alpha := 0.55 * (1.0 - absf(progress - 0.43) / 0.15)
+			draw_arc(fist, 17.0 + extension * 5.0, -1.2, 1.2, 18, Color(punch_color.r, punch_color.g, punch_color.b, ring_alpha), 3.0, true)
 	else:
-		# A low, forward kick with a bent knee and a flatter foot silhouette.
+		# The kick chambers high, whips outward, and tucks back in on recovery.
+		var chamber := windup * 11.0
 		var hip := Vector2(16.0 * f, 31.0)
-		var knee := Vector2((29.0 + 8.0 * extension) * f, 34.0 - 5.0 * extension)
-		var foot := Vector2((45.0 + 34.0 * extension) * f, 39.0 - 10.0 * extension)
-		# A single short arc gives the leg motion without cluttering the mascot.
-		_stroke([
-			Vector2((foot.x - 24.0 * f), foot.y - 13.0),
-			Vector2((foot.x - 12.0 * f), foot.y - 19.0),
-			Vector2((foot.x - 1.0 * f), foot.y - 16.0)
-		], Color(kick_color.r, kick_color.g, kick_color.b, 0.58), 3.0)
-		_stroke([hip, knee, foot], OUTLINE, 19.0)
-		_stroke([hip, knee, foot], kick_color, 12.0)
-		_ellipse(foot, 13.0, 6.5, OUTLINE)
-		_ellipse(foot + Vector2(2.0 * f, -0.5), 9.0, 3.5, WHITE)
-
+		var knee := Vector2((29.0 - chamber * 0.35 + extension * 10.0) * f, 34.0 - chamber * 0.8 - extension * 7.0 + follow_through * 3.0)
+		var foot_x := 45.0 - chamber + extension * 39.0 - follow_through * 9.0
+		var foot_y := 39.0 - chamber * 0.9 - extension * 13.0 + follow_through * 7.0
+		var foot := Vector2(foot_x * f, foot_y)
+		if progress > 0.20 and progress < 0.82:
+			var arc_alpha := 0.58 * (1.0 - follow_through)
+			_stroke([
+				Vector2(foot.x - 29.0 * f, foot.y - 10.0),
+				Vector2(foot.x - 17.0 * f, foot.y - 23.0),
+				Vector2(foot.x - 2.0 * f, foot.y - 19.0)
+			], Color(kick_color.r, kick_color.g, kick_color.b, arc_alpha), 3.5)
+		_stroke([hip, knee, foot], OUTLINE, 20.0)
+		_stroke([hip, knee, foot], kick_color, 13.0)
+		_ellipse(foot, 14.0, 7.0, OUTLINE)
+		_ellipse(foot + Vector2(2.0 * f, -0.5), 9.5, 4.0, WHITE)
 
 func _draw_feet(color: Color, width: float = 19.0) -> void:
 	var y := 79.0 if not crouching else 83.0
